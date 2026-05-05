@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NSwag.AspNetCore" Version="14.7.1" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.14.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EcomPlatform.Application\EcomPlatform.Application.csproj" />
+    <ProjectReference Include="..\EcomPlatform.Infrastructure\EcomPlatform.Infrastructure.csproj" />
+    <ProjectReference Include="..\EcomPlatform.Shared\EcomPlatform.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

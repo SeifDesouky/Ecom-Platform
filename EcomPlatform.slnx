@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="EcomPlatform.API/EcomPlatform.API.csproj" />
+  <Project Path="EcomPlatform.Application/EcomPlatform.Application.csproj" />
+  <Project Path="EcomPlatform.Core/EcomPlatform.Core.csproj" />
+  <Project Path="EcomPlatform.Infrastructure/EcomPlatform.Infrastructure.csproj" />
+  <Project Path="EcomPlatform.Shared/EcomPlatform.Shared.csproj" />
+</Solution>

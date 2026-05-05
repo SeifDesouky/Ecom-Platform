@@ -1,0 +1,52 @@
+﻿using EcomPlatform.Core.Entities;
+using EcomPlatform.Core.Interfaces;
+using EcomPlatform.Core.Interfaces.Repositories;
+using EcomPlatform.Infrastructure.Data;
+
+namespace EcomPlatform.Infrastructure.Repositories
+{
+    public class UnitOfWork : IUnitOfWork
+    {
+        private readonly AppDbContext _context;
+
+        public IRepository<Tenant> Tenants { get; }
+        public IRepository<User> Users { get; }
+        public IRepository<Category> Categories { get; }
+        public IRepository<Product> Products { get; }
+        public IRepository<ProductImage> ProductImages { get; }
+        public IRepository<Order> Orders { get; }
+        public IRepository<OrderItem> OrderItems { get; }
+        public IRepository<Customer> Customers { get; }
+        public IRepository<CustomerAddress> CustomerAddresses { get; }
+        public IRepository<Coupon> Coupons { get; }
+        public IRepository<Plan> Plans { get; }
+        public IRepository<Subscription> Subscriptions { get; }
+        public IRepository<Ticket> Tickets { get; }
+        public IRepository<TicketReply> TicketReplies { get; }
+
+
+        public UnitOfWork(AppDbContext context)
+        {
+            _context = context;
+            Tenants = new Repository<Tenant>(context);
+            Users = new Repository<User>(context);
+            Categories = new Repository<Category>(context);
+            Products = new Repository<Product>(context);
+            ProductImages = new Repository<ProductImage>(context);
+            Orders = new Repository<Order>(context);
+            OrderItems = new Repository<OrderItem>(context);
+            Customers = new Repository<Customer>(context);
+            CustomerAddresses = new Repository<CustomerAddress>(context);
+            Coupons = new Repository<Coupon>(context);
+            Plans = new Repository<Plan>(context);
+            Subscriptions = new Repository<Subscription>(context);
+            Tickets = new Repository<Ticket>(context);
+            TicketReplies = new Repository<TicketReply>(context);
+        }
+
+        public async Task<int> SaveChangesAsync() =>
+            await _context.SaveChangesAsync();
+
+        public void Dispose() => _context.Dispose();
+    }
+}
