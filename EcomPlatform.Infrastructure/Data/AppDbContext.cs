@@ -22,6 +22,12 @@ namespace EcomPlatform.Infrastructure.Data
         public DbSet<Subscription> Subscriptions => Set<Subscription>();
         public DbSet<Ticket> Tickets => Set<Ticket>();
         public DbSet<TicketReply> TicketReplies => Set<TicketReply>();
+        public DbSet<ShippingZone> ShippingZones => Set<ShippingZone>();
+        public DbSet<ShippingMethod> ShippingMethods => Set<ShippingMethod>();
+        public DbSet<Invoice> Invoices => Set<Invoice>();
+        public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
+        public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<Setting> Settings => Set<Setting>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

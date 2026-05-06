@@ -82,6 +82,10 @@ builder.Services.AddScoped<ICouponService, CouponService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IPlanService, PlanService>();
 builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<IShippingService, ShippingService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISettingService, SettingService>();
 
 
 var app = builder.Build();

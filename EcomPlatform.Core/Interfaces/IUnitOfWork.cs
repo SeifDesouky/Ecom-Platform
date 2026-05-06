@@ -19,6 +19,12 @@ namespace EcomPlatform.Core.Interfaces
         IRepository<Subscription> Subscriptions { get; }
         IRepository<Ticket> Tickets { get; }
         IRepository<TicketReply> TicketReplies { get; }
+        IRepository<ShippingZone> ShippingZones { get; }
+        IRepository<ShippingMethod> ShippingMethods { get; }
+        IRepository<Invoice> Invoices { get; }
+        IRepository<InvoiceItem> InvoiceItems { get; }
+        IRepository<Notification> Notifications { get; }
+        IRepository<Setting> Settings { get; }
 
 
 

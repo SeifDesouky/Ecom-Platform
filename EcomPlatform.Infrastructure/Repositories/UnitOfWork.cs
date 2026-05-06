@@ -23,6 +23,12 @@ namespace EcomPlatform.Infrastructure.Repositories
         public IRepository<Subscription> Subscriptions { get; }
         public IRepository<Ticket> Tickets { get; }
         public IRepository<TicketReply> TicketReplies { get; }
+        public IRepository<ShippingZone> ShippingZones { get; }
+        public IRepository<ShippingMethod> ShippingMethods { get; }
+        public IRepository<Invoice> Invoices { get; }
+        public IRepository<InvoiceItem> InvoiceItems { get; }
+        public IRepository<Notification> Notifications { get; }
+        public IRepository<Setting> Settings { get; }
 
 
         public UnitOfWork(AppDbContext context)
@@ -42,6 +48,12 @@ namespace EcomPlatform.Infrastructure.Repositories
             Subscriptions = new Repository<Subscription>(context);
             Tickets = new Repository<Ticket>(context);
             TicketReplies = new Repository<TicketReply>(context);
+            ShippingZones = new Repository<ShippingZone>(context);
+            ShippingMethods = new Repository<ShippingMethod>(context);
+            Invoices = new Repository<Invoice>(context);
+            InvoiceItems = new Repository<InvoiceItem>(context);
+            Notifications = new Repository<Notification>(context);
+            Settings = new Repository<Setting>(context);
         }
 
         public async Task<int> SaveChangesAsync() =>
