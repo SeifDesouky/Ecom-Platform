@@ -25,6 +25,11 @@ namespace EcomPlatform.Core.Interfaces
         IRepository<InvoiceItem> InvoiceItems { get; }
         IRepository<Notification> Notifications { get; }
         IRepository<Setting> Settings { get; }
+        IRepository<TenantDomain> TenantDomains { get; }
+        IRepository<Page> Pages { get; }
+        IRepository<Article> Articles { get; }
+        IRepository<AuditLog> AuditLogs { get; }
+        IRepository<DashboardSnapshot> DashboardSnapshots { get; }
 
 
 

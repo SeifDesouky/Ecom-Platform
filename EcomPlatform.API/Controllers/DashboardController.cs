@@ -29,5 +29,19 @@ namespace EcomPlatform.API.Controllers
             var result = await _dashboardService.GetPlatformStatsAsync();
             return Ok(result);
         }
+
+        [HttpGet("tenant/{tenantId}/snapshot")]
+        public async Task<IActionResult> GetTenantSnapshot(Guid tenantId)
+        {
+            var result = await _dashboardService.GetLatestSnapshotAsync(tenantId);
+            return Ok(result);
+        }
+
+        [HttpGet("platform/snapshot")]
+        public async Task<IActionResult> GetPlatformSnapshot()
+        {
+            var result = await _dashboardService.GetLatestSnapshotAsync(null);
+            return Ok(result);
+        }
     }
 }

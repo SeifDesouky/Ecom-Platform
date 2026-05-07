@@ -7,5 +7,6 @@ namespace EcomPlatform.Application.Services.Interfaces
     {
         Task<ApiResponse<DashboardStatsDto>> GetTenantStatsAsync(Guid tenantId);
         Task<ApiResponse<DashboardStatsDto>> GetPlatformStatsAsync();
+        Task<ApiResponse<DashboardStatsDto>> GetLatestSnapshotAsync(Guid? tenantId);
     }
 }

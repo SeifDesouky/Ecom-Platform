@@ -29,6 +29,11 @@ namespace EcomPlatform.Infrastructure.Repositories
         public IRepository<InvoiceItem> InvoiceItems { get; }
         public IRepository<Notification> Notifications { get; }
         public IRepository<Setting> Settings { get; }
+        public IRepository<TenantDomain> TenantDomains { get; }
+        public IRepository<Page> Pages { get; }
+        public IRepository<Article> Articles { get; }
+        public IRepository<AuditLog> AuditLogs { get; }
+        public IRepository<DashboardSnapshot> DashboardSnapshots { get; }
 
 
         public UnitOfWork(AppDbContext context)
@@ -54,6 +59,11 @@ namespace EcomPlatform.Infrastructure.Repositories
             InvoiceItems = new Repository<InvoiceItem>(context);
             Notifications = new Repository<Notification>(context);
             Settings = new Repository<Setting>(context);
+            TenantDomains = new Repository<TenantDomain>(context);
+            Pages = new Repository<Page>(context);
+            Articles = new Repository<Article>(context);
+            AuditLogs = new Repository<AuditLog>(context);
+            DashboardSnapshots = new Repository<DashboardSnapshot>(context);
         }
 
         public async Task<int> SaveChangesAsync() =>

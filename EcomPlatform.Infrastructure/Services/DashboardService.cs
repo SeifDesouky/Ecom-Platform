@@ -20,35 +20,27 @@ namespace EcomPlatform.Infrastructure.Services
             var now = DateTime.UtcNow;
             var startOfMonth = new DateTime(now.Year, now.Month, 1);
 
-            // Orders
             var orders = await _unitOfWork.Orders.FindAsync(o => o.TenantId == tenantId);
             var ordersList = orders.ToList();
 
-            // Customers
             var customers = await _unitOfWork.Customers.FindAsync(c => c.TenantId == tenantId);
             var customersList = customers.ToList();
 
-            // Products
             var products = await _unitOfWork.Products.FindAsync(p => p.TenantId == tenantId);
             var productsList = products.ToList();
 
-            // Order Items
             var allOrderIds = ordersList.Select(o => o.Id).ToList();
             var orderItems = await _unitOfWork.OrderItems.FindAsync(i => allOrderIds.Contains(i.OrderId));
             var orderItemsList = orderItems.ToList();
 
-            // Stats
             var stats = new DashboardStatsDto
             {
-                // Revenue
                 TotalRevenue = ordersList
                     .Where(o => o.PaymentStatus == PaymentStatus.Paid)
                     .Sum(o => o.Total),
                 RevenueThisMonth = ordersList
                     .Where(o => o.PaymentStatus == PaymentStatus.Paid && o.CreatedAt >= startOfMonth)
                     .Sum(o => o.Total),
-
-                // Orders
                 TotalOrders = ordersList.Count,
                 OrdersThisMonth = ordersList.Count(o => o.CreatedAt >= startOfMonth),
                 PendingOrders = ordersList.Count(o => o.Status == OrderStatus.Pending),
@@ -56,17 +48,11 @@ namespace EcomPlatform.Infrastructure.Services
                 ShippedOrders = ordersList.Count(o => o.Status == OrderStatus.Shipped),
                 DeliveredOrders = ordersList.Count(o => o.Status == OrderStatus.Delivered),
                 CancelledOrders = ordersList.Count(o => o.Status == OrderStatus.Cancelled),
-
-                // Customers
                 TotalCustomers = customersList.Count,
                 NewCustomersThisMonth = customersList.Count(c => c.CreatedAt >= startOfMonth),
-
-                // Products
                 TotalProducts = productsList.Count,
                 ActiveProducts = productsList.Count(p => p.IsActive),
                 LowStockProducts = productsList.Count(p => p.Stock <= p.LowStockAlert && p.TrackInventory),
-
-                // Recent Orders
                 RecentOrders = ordersList
                     .OrderByDescending(o => o.CreatedAt)
                     .Take(10)
@@ -79,8 +65,6 @@ namespace EcomPlatform.Infrastructure.Services
                         Status = (int)o.Status,
                         CreatedAt = o.CreatedAt
                     }).ToList(),
-
-                // Top Products
                 TopProducts = orderItemsList
                     .GroupBy(i => i.ProductId)
                     .Select(g => new TopProductDto
@@ -95,8 +79,6 @@ namespace EcomPlatform.Infrastructure.Services
                     .OrderByDescending(p => p.TotalSold)
                     .Take(5)
                     .ToList(),
-
-                // Monthly Sales (last 6 months)
                 MonthlySales = Enumerable.Range(0, 6)
                     .Select(i =>
                     {
@@ -191,6 +173,35 @@ namespace EcomPlatform.Infrastructure.Services
             };
 
             return ApiResponse<DashboardStatsDto>.Ok(stats);
+        }
+
+        public async Task<ApiResponse<DashboardStatsDto>> GetLatestSnapshotAsync(Guid? tenantId)
+        {
+            var snapshots = await _unitOfWork.DashboardSnapshots.FindAsync(s => s.TenantId == tenantId);
+            var latest = snapshots.OrderByDescending(s => s.SnapshotDate).FirstOrDefault();
+
+            if (latest == null)
+                return await (tenantId.HasValue
+                    ? GetTenantStatsAsync(tenantId.Value)
+                    : GetPlatformStatsAsync());
+
+            return ApiResponse<DashboardStatsDto>.Ok(new DashboardStatsDto
+            {
+                TotalRevenue = latest.TotalRevenue,
+                RevenueThisMonth = latest.RevenueThisMonth,
+                TotalOrders = latest.TotalOrders,
+                OrdersThisMonth = latest.OrdersThisMonth,
+                TotalCustomers = latest.TotalCustomers,
+                NewCustomersThisMonth = latest.NewCustomersThisMonth,
+                TotalProducts = latest.TotalProducts,
+                ActiveProducts = latest.ActiveProducts,
+                LowStockProducts = latest.LowStockProducts,
+                PendingOrders = latest.PendingOrders,
+                ProcessingOrders = latest.ProcessingOrders,
+                ShippedOrders = latest.ShippedOrders,
+                DeliveredOrders = latest.DeliveredOrders,
+                CancelledOrders = latest.CancelledOrders
+            });
         }
     }
 }

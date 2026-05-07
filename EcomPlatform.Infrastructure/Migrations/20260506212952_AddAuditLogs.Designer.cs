@@ -4,6 +4,7 @@ using EcomPlatform.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EcomPlatform.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260506212952_AddAuditLogs")]
+    partial class AddAuditLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -414,76 +417,6 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.HasIndex("CustomerId");
 
                     b.ToTable("CustomerAddresses");
-                });
-
-            modelBuilder.Entity("EcomPlatform.Core.Entities.DashboardSnapshot", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("ActiveProducts")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CancelledOrders")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DeliveredOrders")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("LowStockProducts")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NewCustomersThisMonth")
-                        .HasColumnType("int");
-
-                    b.Property<int>("OrdersThisMonth")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PendingOrders")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProcessingOrders")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("RevenueThisMonth")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ShippedOrders")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("SnapshotDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("TotalCustomers")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TotalOrders")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TotalProducts")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalRevenue")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("DashboardSnapshots");
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.Invoice", b =>
@@ -1655,16 +1588,6 @@ namespace EcomPlatform.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
-                });
-
-            modelBuilder.Entity("EcomPlatform.Core.Entities.DashboardSnapshot", b =>
-                {
-                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.Invoice", b =>

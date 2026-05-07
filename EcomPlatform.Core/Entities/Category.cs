@@ -13,7 +13,6 @@ namespace EcomPlatform.Core.Entities
         public Category? Parent { get; set; }
         public Guid TenantId { get; set; }
         public Tenant? Tenant { get; set; }
-
         // Navigation
         public ICollection<Category> Children { get; set; } = new List<Category>();
         public ICollection<Product> Products { get; set; } = new List<Product>();
