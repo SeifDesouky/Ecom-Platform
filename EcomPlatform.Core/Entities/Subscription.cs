@@ -3,7 +3,7 @@ using EcomPlatform.Core.Enums;
 
 namespace EcomPlatform.Core.Entities
 {
-    public class Subscription : BaseEntity
+    public class Subscription : BaseEntity, ITenantEntity
     {
         public SubscriptionStatus Status { get; set; } = SubscriptionStatus.Active;
         public SubscriptionPeriod Period { get; set; } = SubscriptionPeriod.Monthly;
@@ -15,9 +15,9 @@ namespace EcomPlatform.Core.Entities
         public string Notes { get; set; } = string.Empty;
 
         // Relations
-        public Guid TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }
-        public Guid PlanId { get; set; }
+        public Guid? PlanId { get; set; }
         public Plan? Plan { get; set; }
     }
 }

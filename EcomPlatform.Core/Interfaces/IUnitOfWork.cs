@@ -7,6 +7,7 @@ namespace EcomPlatform.Core.Interfaces
     {
         IRepository<Entities.Tenant> Tenants { get; }
         IRepository<Entities.User> Users { get; }
+        IRepository<RefreshToken> RefreshTokens { get; }   // ← الجديد
         IRepository<Category> Categories { get; }
         IRepository<Product> Products { get; }
         IRepository<ProductImage> ProductImages { get; }
@@ -30,8 +31,6 @@ namespace EcomPlatform.Core.Interfaces
         IRepository<Article> Articles { get; }
         IRepository<AuditLog> AuditLogs { get; }
         IRepository<DashboardSnapshot> DashboardSnapshots { get; }
-
-
 
         Task<int> SaveChangesAsync();
     }

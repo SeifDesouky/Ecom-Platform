@@ -3,7 +3,7 @@ using EcomPlatform.Core.Enums;
 
 namespace EcomPlatform.Core.Entities
 {
-    public class Notification : BaseEntity
+    public class Notification : BaseEntity, ITenantEntity
     {
         public string Title { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;

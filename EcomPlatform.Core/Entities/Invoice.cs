@@ -3,7 +3,7 @@ using EcomPlatform.Core.Enums;
 
 namespace EcomPlatform.Core.Entities
 {
-    public class Invoice : BaseEntity
+    public class Invoice : BaseEntity, ITenantEntity
     {
         public string InvoiceNumber { get; set; } = string.Empty;
         public InvoiceStatus Status { get; set; } = InvoiceStatus.Unpaid;
@@ -22,7 +22,7 @@ namespace EcomPlatform.Core.Entities
         public string CustomerAddress { get; set; } = string.Empty;
 
         // Relations
-        public Guid TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }
         public Guid OrderId { get; set; }
         public Order? Order { get; set; }

@@ -210,7 +210,7 @@ namespace EcomPlatform.Infrastructure.Services
             MetaTitle = product.MetaTitle,
             MetaDescription = product.MetaDescription,
             Weight = product.Weight,
-            TenantId = product.TenantId,
+            TenantId = product.TenantId ?? Guid.Empty,
             CategoryId = product.CategoryId,
             CategoryName = product.Category?.Name ?? string.Empty,
             CreatedAt = product.CreatedAt,

@@ -2,7 +2,7 @@
 
 namespace EcomPlatform.Core.Entities
 {
-    public class Article : BaseEntity
+    public class Article : BaseEntity, ITenantEntity
     {
         public string Title { get; set; } = string.Empty;
         public string Slug { get; set; } = string.Empty;

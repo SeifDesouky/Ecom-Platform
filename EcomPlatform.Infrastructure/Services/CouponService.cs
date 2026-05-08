@@ -171,7 +171,7 @@ namespace EcomPlatform.Infrastructure.Services
             IsActive = coupon.IsActive,
             StartDate = coupon.StartDate,
             EndDate = coupon.EndDate,
-            TenantId = coupon.TenantId,
+            TenantId = coupon.TenantId ?? Guid.Empty,
             CreatedAt = coupon.CreatedAt
         };
     }

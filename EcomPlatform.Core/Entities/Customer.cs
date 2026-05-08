@@ -2,7 +2,7 @@
 
 namespace EcomPlatform.Core.Entities
 {
-    public class Customer : BaseEntity
+    public class Customer : BaseEntity, ITenantEntity
     {
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
@@ -17,7 +17,7 @@ namespace EcomPlatform.Core.Entities
         public int TotalOrders { get; set; } = 0;
 
         // Relations
-        public Guid TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }
 
         // Navigation

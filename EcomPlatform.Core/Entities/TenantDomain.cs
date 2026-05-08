@@ -3,7 +3,7 @@ using EcomPlatform.Core.Enums;
 
 namespace EcomPlatform.Core.Entities
 {
-    public class TenantDomain : BaseEntity
+    public class TenantDomain : BaseEntity, ITenantEntity
     {
         public string Domain { get; set; } = string.Empty;
         public DomainStatus Status { get; set; } = DomainStatus.Pending;
@@ -15,7 +15,7 @@ namespace EcomPlatform.Core.Entities
         public string Notes { get; set; } = string.Empty;
 
         // Relations
-        public Guid TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }
     }
 }

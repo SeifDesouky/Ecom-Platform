@@ -19,6 +19,7 @@ namespace EcomPlatform.Infrastructure.Data
 
         public DbSet<Tenant> Tenants => Set<Tenant>();
         public DbSet<User> Users => Set<User>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();   // ← الجديد
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Product> Products => Set<Product>();
         public DbSet<ProductImage> ProductImages => Set<ProductImage>();
@@ -112,8 +113,6 @@ namespace EcomPlatform.Infrastructure.Data
                     (!_tenantProvider.TenantId.HasValue ||
                      x.TenantId == _tenantProvider.TenantId));
 
-            // --- المفقودين اللي اتضافوا دلوقتي ---
-
             modelBuilder.Entity<Notification>()
                 .HasQueryFilter(x =>
                     !x.IsDeleted &&
@@ -162,8 +161,6 @@ namespace EcomPlatform.Infrastructure.Data
                 .HasQueryFilter(x => !x.IsDeleted);
 
             // --- Child entities بدون TenantId مباشر ---
-            // بتتفلتر تلقائياً عن طريق الـ parent (Order → OrderItem)
-            // بس نضيف IsDeleted عليهم على الأقل
 
             modelBuilder.Entity<OrderItem>()
                 .HasQueryFilter(x => !x.IsDeleted);
@@ -184,6 +181,10 @@ namespace EcomPlatform.Infrastructure.Data
                 .HasQueryFilter(x => !x.IsDeleted);
 
             modelBuilder.Entity<DashboardSnapshot>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            // ← الجديد: RefreshToken مش بيحتاج tenant filter — هو user-scoped
+            modelBuilder.Entity<RefreshToken>()
                 .HasQueryFilter(x => !x.IsDeleted);
         }
 

@@ -23,15 +23,19 @@ namespace EcomPlatform.Infrastructure.Services
             if (invoice == null)
                 return ApiResponse<ZatcaInvoiceDto>.Fail("Invoice not found");
 
-            var items = await _unitOfWork.InvoiceItems.FindAsync(i => i.InvoiceId == invoiceId);
-            var tenant = await _unitOfWork.Tenants.GetByIdAsync(invoice.TenantId);
+            var itemsResult = await _unitOfWork.InvoiceItems.FindAsync(i => i.InvoiceId == invoiceId);
+            var items = itemsResult?.ToList() ?? new List<Core.Entities.InvoiceItem>();
+
+            var tenant = invoice.TenantId.HasValue
+                ? await _unitOfWork.Tenants.GetByIdAsync(invoice.TenantId.Value)
+                : null;
 
             decimal vatRate = 0.15m;
             decimal subtotalExVat = invoice.SubTotal / (1 + vatRate);
             decimal vatAmount = invoice.SubTotal - subtotalExVat;
             decimal total = subtotalExVat + vatAmount - invoice.Discount + invoice.Tax;
 
-            var xml = GenerateZatcaXml(invoice, items.ToList(), tenant, subtotalExVat, vatAmount, total);
+            var xml = GenerateZatcaXml(invoice, items, tenant, subtotalExVat, vatAmount, total);
             var qrCode = GenerateQrCode(invoice, tenant, subtotalExVat, vatAmount);
 
             var result = new ZatcaInvoiceDto

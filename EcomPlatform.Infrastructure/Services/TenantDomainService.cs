@@ -159,7 +159,7 @@ namespace EcomPlatform.Infrastructure.Services
             VerificationToken = domain.VerificationToken,
             VerifiedAt = domain.VerifiedAt,
             Notes = domain.Notes,
-            TenantId = domain.TenantId,
+            TenantId = domain.TenantId ?? Guid.Empty,
             CreatedAt = domain.CreatedAt
         };
     }

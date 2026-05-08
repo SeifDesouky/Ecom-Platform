@@ -2,7 +2,7 @@
 
 namespace EcomPlatform.Core.Entities
 {
-    public class Setting : BaseEntity
+    public class Setting : BaseEntity, ITenantEntity
     {
         public string Key { get; set; } = string.Empty;
         public string Value { get; set; } = string.Empty;

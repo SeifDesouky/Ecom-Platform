@@ -178,7 +178,7 @@ namespace EcomPlatform.Infrastructure.Services
             Name = zone.Name,
             Description = zone.Description,
             IsActive = zone.IsActive,
-            TenantId = zone.TenantId,
+            TenantId = zone.TenantId ?? Guid.Empty,
             CreatedAt = zone.CreatedAt,
             Methods = zone.Methods?.Select(MapMethodToDto).ToList() ?? new()
         };

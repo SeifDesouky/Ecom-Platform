@@ -116,7 +116,7 @@ namespace EcomPlatform.Infrastructure.Services
             IsActive = category.IsActive,
             ParentId = category.ParentId,
             ParentName = category.Parent?.Name,
-            TenantId = category.TenantId,
+            TenantId = category.TenantId ?? Guid.Empty,
             CreatedAt = category.CreatedAt,
             ProductsCount = category.Products?.Count ?? 0
         };

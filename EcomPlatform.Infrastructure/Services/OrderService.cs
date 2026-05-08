@@ -224,7 +224,7 @@ namespace EcomPlatform.Infrastructure.Services
             PaidAt = order.PaidAt,
             ShippedAt = order.ShippedAt,
             DeliveredAt = order.DeliveredAt,
-            TenantId = order.TenantId,
+            TenantId = order.TenantId ?? Guid.Empty,
             CreatedAt = order.CreatedAt,
             Items = order.Items?.Select(i => new OrderItemResponseDto
             {

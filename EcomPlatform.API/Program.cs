@@ -19,6 +19,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text.Json;
 using Asp.Versioning;
+using EcomPlatform.Infrastructure.Data.Interceptors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -95,11 +96,27 @@ builder.Services.AddOpenApiDocument(c =>
 });
 
 // ============================
+// Tenant Provider
+// ============================
+builder.Services.AddScoped<ITenantProvider, CurrentTenantProvider>();
+
+// ============================
+// Tenant Enforcement Interceptor
+// ============================
+builder.Services.AddScoped<TenantEnforcementInterceptor>();
+
+// ============================
 // Database
 // ============================
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+{
+    var interceptor = serviceProvider
+        .GetRequiredService<TenantEnforcementInterceptor>();
+
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+        builder.Configuration.GetConnectionString("DefaultConnection"))
+        .AddInterceptors(interceptor);
+});
 
 // ============================
 // JWT Settings
@@ -162,8 +179,10 @@ var allowedOrigins = builder.Configuration
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin()
+    options.AddPolicy("Development", policy =>
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "https://localhost:3000")
               .AllowAnyMethod()
               .AllowAnyHeader());
 
@@ -173,21 +192,26 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader());
 });
 
+// ============================
 // Cloudinary
+// ============================
 builder.Services.Configure<CloudinarySettings>(
     builder.Configuration.GetSection("CloudinarySettings"));
+
 builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
 
 // ============================
 // Health Checks
 // ============================
 builder.Services.AddHealthChecks()
-    .AddSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")!);
+    .AddSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")!);
 
 // ============================
 // Dependency Injection
 // ============================
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -207,7 +231,6 @@ builder.Services.AddScoped<ITenantDomainService, TenantDomainService>();
 builder.Services.AddScoped<ICMSService, CMSService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IZatcaService, ZatcaService>();
-builder.Services.AddScoped<ITenantProvider, CurrentTenantProvider>();
 
 // ============================
 // Background Services
@@ -224,16 +247,17 @@ if (app.Environment.IsDevelopment())
     app.UseOpenApi();
     app.UseSwaggerUi();
 
-    app.UseCors("AllowAll");
+    app.UseCors("Development");
 }
 else
 {
     app.UseCors("Production");
-    app.UseHttpsRedirection();
 }
 
+app.UseHttpsRedirection();
+
 // ============================
-// Health Check - All Environments
+// Health Checks
 // ============================
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
@@ -259,6 +283,9 @@ app.MapHealthChecks("/health", new HealthCheckOptions
     }
 });
 
+// ============================
+// Middleware Order
+// ============================
 app.UseRateLimiter();
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
@@ -272,15 +299,19 @@ app.UseAuthorization();
 app.MapControllers();
 
 // ============================
-// Auto Migrate + Seed
+// Auto Migrate
 // ============================
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var db = scope.ServiceProvider
+        .GetRequiredService<AppDbContext>();
 
     await db.Database.MigrateAsync();
 }
 
+// ============================
+// Seed Database
+// ============================
 await DbSeeder.SeedAsync(app.Services);
 
 app.Run();

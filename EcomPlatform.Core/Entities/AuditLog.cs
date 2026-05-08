@@ -3,7 +3,7 @@ using EcomPlatform.Core.Enums;
 
 namespace EcomPlatform.Core.Entities
 {
-    public class AuditLog : BaseEntity
+    public class AuditLog : BaseEntity, ITenantEntity
     {
         public string EntityName { get; set; } = string.Empty;
         public string EntityId { get; set; } = string.Empty;

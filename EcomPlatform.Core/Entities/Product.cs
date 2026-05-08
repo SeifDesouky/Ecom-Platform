@@ -3,7 +3,7 @@ using EcomPlatform.Core.Enums;
 
 namespace EcomPlatform.Core.Entities
 {
-    public class Product : BaseEntity
+    public class Product : BaseEntity, ITenantEntity
     {
         public string Name { get; set; } = string.Empty;
         public string Slug { get; set; } = string.Empty;
@@ -25,7 +25,7 @@ namespace EcomPlatform.Core.Entities
         public decimal Weight { get; set; }
 
         // Relations
-        public Guid TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }
         public Guid CategoryId { get; set; }
         public Category? Category { get; set; }

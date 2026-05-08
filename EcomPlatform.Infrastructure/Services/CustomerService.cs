@@ -192,7 +192,7 @@ namespace EcomPlatform.Infrastructure.Services
             Notes = customer.Notes,
             TotalSpent = customer.TotalSpent,
             TotalOrders = customer.TotalOrders,
-            TenantId = customer.TenantId,
+            TenantId = customer.TenantId ?? Guid.Empty,
             CreatedAt = customer.CreatedAt,
             Addresses = customer.Addresses?.Select(MapAddressToDto).ToList() ?? new()
         };

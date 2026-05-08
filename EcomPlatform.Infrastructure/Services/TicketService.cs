@@ -166,7 +166,7 @@ namespace EcomPlatform.Infrastructure.Services
             Status = ticket.Status,
             Priority = ticket.Priority,
             Category = ticket.Category,
-            TenantId = ticket.TenantId,
+            TenantId = ticket.TenantId ?? Guid.Empty,
             CreatedById = ticket.CreatedById,
             CreatedByName = ticket.CreatedBy != null
                 ? $"{ticket.CreatedBy.FirstName} {ticket.CreatedBy.LastName}"

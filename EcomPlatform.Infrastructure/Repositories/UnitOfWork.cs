@@ -11,6 +11,7 @@ namespace EcomPlatform.Infrastructure.Repositories
 
         public IRepository<Tenant> Tenants { get; }
         public IRepository<User> Users { get; }
+        public IRepository<RefreshToken> RefreshTokens { get; }   // ← الجديد
         public IRepository<Category> Categories { get; }
         public IRepository<Product> Products { get; }
         public IRepository<ProductImage> ProductImages { get; }
@@ -35,12 +36,12 @@ namespace EcomPlatform.Infrastructure.Repositories
         public IRepository<AuditLog> AuditLogs { get; }
         public IRepository<DashboardSnapshot> DashboardSnapshots { get; }
 
-
         public UnitOfWork(AppDbContext context)
         {
             _context = context;
             Tenants = new Repository<Tenant>(context);
             Users = new Repository<User>(context);
+            RefreshTokens = new Repository<RefreshToken>(context);   // ← الجديد
             Categories = new Repository<Category>(context);
             Products = new Repository<Product>(context);
             ProductImages = new Repository<ProductImage>(context);

@@ -3,7 +3,7 @@ using EcomPlatform.Core.Enums;
 
 namespace EcomPlatform.Core.Entities
 {
-    public class Order : BaseEntity
+    public class Order : BaseEntity, ITenantEntity
     {
         public string OrderNumber { get; set; } = string.Empty;
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
@@ -26,7 +26,7 @@ namespace EcomPlatform.Core.Entities
         public DateTime? DeliveredAt { get; set; }
 
         // Relations
-        public Guid TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }
         public Guid? CustomerId { get; set; }
         public User? Customer { get; set; }

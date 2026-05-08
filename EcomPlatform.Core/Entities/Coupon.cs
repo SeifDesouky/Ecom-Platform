@@ -3,7 +3,7 @@ using EcomPlatform.Core.Enums;
 
 namespace EcomPlatform.Core.Entities
 {
-    public class Coupon : BaseEntity
+    public class Coupon : BaseEntity, ITenantEntity
     {
         public string Code { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
@@ -18,7 +18,7 @@ namespace EcomPlatform.Core.Entities
         public DateTime? EndDate { get; set; }
 
         // Relations
-        public Guid TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }
     }
 }

@@ -4,7 +4,7 @@ using System.Security.AccessControl;
 
 namespace EcomPlatform.Core.Entities
 {
-    public class Page : BaseEntity
+    public class Page : BaseEntity, ITenantEntity
     {
         public string Title { get; set; } = string.Empty;
         public string Slug { get; set; } = string.Empty;

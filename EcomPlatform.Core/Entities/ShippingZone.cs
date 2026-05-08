@@ -2,12 +2,12 @@
 
 namespace EcomPlatform.Core.Entities
 {
-    public class ShippingZone : BaseEntity
+    public class ShippingZone : BaseEntity, ITenantEntity
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public bool IsActive { get; set; } = true;
-        public Guid TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }
 
         // Navigation

@@ -3,7 +3,7 @@ using EcomPlatform.Core.Enums;
 
 namespace EcomPlatform.Core.Entities
 {
-    public class Ticket : BaseEntity
+    public class Ticket : BaseEntity, ITenantEntity
     {
         public string Subject { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
@@ -12,7 +12,7 @@ namespace EcomPlatform.Core.Entities
         public string Category { get; set; } = string.Empty;
 
         // Relations
-        public Guid TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }
         public Guid CreatedById { get; set; }
         public User? CreatedBy { get; set; }

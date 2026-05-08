@@ -177,7 +177,7 @@ namespace EcomPlatform.Infrastructure.Services
             CustomerEmail = invoice.CustomerEmail,
             CustomerPhone = invoice.CustomerPhone,
             CustomerAddress = invoice.CustomerAddress,
-            TenantId = invoice.TenantId,
+            TenantId = invoice.TenantId ?? Guid.Empty,
             OrderId = invoice.OrderId,
             OrderNumber = invoice.Order?.OrderNumber ?? string.Empty,
             CreatedAt = invoice.CreatedAt,
