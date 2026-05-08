@@ -15,6 +15,8 @@ namespace EcomPlatform.Infrastructure.Data.Configurations
                 .HasMaxLength(50);
 
             builder.HasIndex(c => new { c.Code, c.TenantId }).IsUnique();
+            builder.HasIndex(c => c.TenantId);
+            builder.HasIndex(c => new { c.TenantId, c.IsActive });
 
             builder.Property(c => c.Description)
                 .HasMaxLength(200);

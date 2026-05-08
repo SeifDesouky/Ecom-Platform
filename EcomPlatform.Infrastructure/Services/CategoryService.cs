@@ -48,11 +48,18 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<CategoryResponseDto>.Ok(MapToDto(category));
         }
 
-        public async Task<ApiResponse<IEnumerable<CategoryResponseDto>>> GetAllByTenantAsync(Guid tenantId)
+        public async Task<ApiResponse<PagedResponse<CategoryResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination)
         {
-            var categories = await _unitOfWork.Categories.FindAsync(c => c.TenantId == tenantId);
-            var result = categories.Select(MapToDto);
-            return ApiResponse<IEnumerable<CategoryResponseDto>>.Ok(result);
+            var all = await _unitOfWork.Categories.FindAsync(c => c.TenantId == tenantId);
+            var totalCount = all.Count();
+            var items = all
+                .OrderBy(c => c.Name)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .Select(MapToDto)
+                .ToList();
+            var result = PagedResponse<CategoryResponseDto>.Create(items, totalCount, pagination);
+            return ApiResponse<PagedResponse<CategoryResponseDto>>.Ok(result);
         }
 
         public async Task<ApiResponse<CategoryResponseDto>> UpdateAsync(Guid id, UpdateCategoryDto dto)

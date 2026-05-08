@@ -26,6 +26,21 @@ namespace EcomPlatform.Infrastructure.Repositories
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate) =>
             await _dbSet.Where(predicate).ToListAsync();
 
+        public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
+            Expression<Func<T, bool>> predicate,
+            int skip,
+            int take)
+        {
+            var query = _dbSet.Where(predicate);
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(e => e.CreatedAt)
+                .Skip(skip)
+                .Take(take)
+                .ToListAsync();
+            return (items, totalCount);
+        }
+
         public async Task<T> AddAsync(T entity)
         {
             await _dbSet.AddAsync(entity);

@@ -46,96 +46,137 @@ namespace EcomPlatform.Infrastructure.Services
         private async Task TakeSnapshotsAsync()
         {
             using var scope = _serviceProvider.CreateScope();
-            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var now = DateTime.UtcNow;
             var startOfMonth = new DateTime(now.Year, now.Month, 1);
 
-            // Get all tenants
-            var tenants = await unitOfWork.Tenants.GetAllAsync();
+            // جيب الـ tenants بـ query واحدة خفيفة
+            var tenantIds = await db.Tenants
+                .IgnoreQueryFilters()
+                .Where(t => !t.IsDeleted)
+                .Select(t => t.Id)
+                .ToListAsync();
 
-            foreach (var tenant in tenants)
+            foreach (var tenantId in tenantIds)
             {
-                await TakeTenantSnapshotAsync(unitOfWork, tenant.Id, now, startOfMonth);
+                await TakeTenantSnapshotAsync(db, tenantId, now, startOfMonth);
             }
 
-            // Platform snapshot
-            await TakePlatformSnapshotAsync(unitOfWork, now, startOfMonth);
+            await TakePlatformSnapshotAsync(db, now, startOfMonth);
         }
 
-        private async Task TakeTenantSnapshotAsync(IUnitOfWork unitOfWork,
+        private async Task TakeTenantSnapshotAsync(AppDbContext db,
             Guid tenantId, DateTime now, DateTime startOfMonth)
         {
-            var orders = await unitOfWork.Orders.FindAsync(o => o.TenantId == tenantId);
-            var ordersList = orders.ToList();
+            // aggregate مباشرة في الـ DB بدل ما نجيب كل الداتا في الميموري
+            var orders = db.Orders.IgnoreQueryFilters()
+                .Where(o => o.TenantId == tenantId && !o.IsDeleted);
 
-            var customers = await unitOfWork.Customers.FindAsync(c => c.TenantId == tenantId);
-            var products = await unitOfWork.Products.FindAsync(p => p.TenantId == tenantId);
-            var productsList = products.ToList();
+            var totalRevenue = await orders
+                .Where(o => o.PaymentStatus == PaymentStatus.Paid)
+                .SumAsync(o => o.Total);
+
+            var revenueThisMonth = await orders
+                .Where(o => o.PaymentStatus == PaymentStatus.Paid && o.CreatedAt >= startOfMonth)
+                .SumAsync(o => o.Total);
+
+            var totalOrders = await orders.CountAsync();
+            var ordersThisMonth = await orders.CountAsync(o => o.CreatedAt >= startOfMonth);
+            var pendingOrders = await orders.CountAsync(o => o.Status == OrderStatus.Pending);
+            var processingOrders = await orders.CountAsync(o => o.Status == OrderStatus.Processing);
+            var shippedOrders = await orders.CountAsync(o => o.Status == OrderStatus.Shipped);
+            var deliveredOrders = await orders.CountAsync(o => o.Status == OrderStatus.Delivered);
+            var cancelledOrders = await orders.CountAsync(o => o.Status == OrderStatus.Cancelled);
+
+            var customers = db.Customers.IgnoreQueryFilters()
+                .Where(c => c.TenantId == tenantId && !c.IsDeleted);
+
+            var totalCustomers = await customers.CountAsync();
+            var newCustomersThisMonth = await customers.CountAsync(c => c.CreatedAt >= startOfMonth);
+
+            var products = db.Products.IgnoreQueryFilters()
+                .Where(p => p.TenantId == tenantId && !p.IsDeleted);
+
+            var totalProducts = await products.CountAsync();
+            var activeProducts = await products.CountAsync(p => p.IsActive);
+            var lowStockProducts = await products.CountAsync(p => p.Stock <= p.LowStockAlert && p.TrackInventory);
 
             var snapshot = new DashboardSnapshot
             {
                 TenantId = tenantId,
                 SnapshotDate = now,
-                TotalRevenue = ordersList
-                    .Where(o => o.PaymentStatus == PaymentStatus.Paid)
-                    .Sum(o => o.Total),
-                RevenueThisMonth = ordersList
-                    .Where(o => o.PaymentStatus == PaymentStatus.Paid && o.CreatedAt >= startOfMonth)
-                    .Sum(o => o.Total),
-                TotalOrders = ordersList.Count,
-                OrdersThisMonth = ordersList.Count(o => o.CreatedAt >= startOfMonth),
-                TotalCustomers = customers.Count(),
-                NewCustomersThisMonth = customers.Count(c => c.CreatedAt >= startOfMonth),
-                TotalProducts = productsList.Count,
-                ActiveProducts = productsList.Count(p => p.IsActive),
-                LowStockProducts = productsList.Count(p => p.Stock <= p.LowStockAlert && p.TrackInventory),
-                PendingOrders = ordersList.Count(o => o.Status == OrderStatus.Pending),
-                ProcessingOrders = ordersList.Count(o => o.Status == OrderStatus.Processing),
-                ShippedOrders = ordersList.Count(o => o.Status == OrderStatus.Shipped),
-                DeliveredOrders = ordersList.Count(o => o.Status == OrderStatus.Delivered),
-                CancelledOrders = ordersList.Count(o => o.Status == OrderStatus.Cancelled)
+                TotalRevenue = totalRevenue,
+                RevenueThisMonth = revenueThisMonth,
+                TotalOrders = totalOrders,
+                OrdersThisMonth = ordersThisMonth,
+                TotalCustomers = totalCustomers,
+                NewCustomersThisMonth = newCustomersThisMonth,
+                TotalProducts = totalProducts,
+                ActiveProducts = activeProducts,
+                LowStockProducts = lowStockProducts,
+                PendingOrders = pendingOrders,
+                ProcessingOrders = processingOrders,
+                ShippedOrders = shippedOrders,
+                DeliveredOrders = deliveredOrders,
+                CancelledOrders = cancelledOrders
             };
 
-            await unitOfWork.DashboardSnapshots.AddAsync(snapshot);
-            await unitOfWork.SaveChangesAsync();
+            await db.DashboardSnapshots.AddAsync(snapshot);
+            await db.SaveChangesAsync();
         }
 
-        private async Task TakePlatformSnapshotAsync(IUnitOfWork unitOfWork,
+        private async Task TakePlatformSnapshotAsync(AppDbContext db,
             DateTime now, DateTime startOfMonth)
         {
-            var orders = await unitOfWork.Orders.GetAllAsync();
-            var ordersList = orders.ToList();
+            var orders = db.Orders.IgnoreQueryFilters().Where(o => !o.IsDeleted);
 
-            var customers = await unitOfWork.Customers.GetAllAsync();
-            var products = await unitOfWork.Products.GetAllAsync();
-            var productsList = products.ToList();
+            var totalRevenue = await orders
+                .Where(o => o.PaymentStatus == PaymentStatus.Paid)
+                .SumAsync(o => o.Total);
+
+            var revenueThisMonth = await orders
+                .Where(o => o.PaymentStatus == PaymentStatus.Paid && o.CreatedAt >= startOfMonth)
+                .SumAsync(o => o.Total);
+
+            var totalOrders = await orders.CountAsync();
+            var ordersThisMonth = await orders.CountAsync(o => o.CreatedAt >= startOfMonth);
+            var pendingOrders = await orders.CountAsync(o => o.Status == OrderStatus.Pending);
+            var processingOrders = await orders.CountAsync(o => o.Status == OrderStatus.Processing);
+            var shippedOrders = await orders.CountAsync(o => o.Status == OrderStatus.Shipped);
+            var deliveredOrders = await orders.CountAsync(o => o.Status == OrderStatus.Delivered);
+            var cancelledOrders = await orders.CountAsync(o => o.Status == OrderStatus.Cancelled);
+
+            var customers = db.Customers.IgnoreQueryFilters().Where(c => !c.IsDeleted);
+            var totalCustomers = await customers.CountAsync();
+            var newCustomersThisMonth = await customers.CountAsync(c => c.CreatedAt >= startOfMonth);
+
+            var products = db.Products.IgnoreQueryFilters().Where(p => !p.IsDeleted);
+            var totalProducts = await products.CountAsync();
+            var activeProducts = await products.CountAsync(p => p.IsActive);
+            var lowStockProducts = await products.CountAsync(p => p.Stock <= p.LowStockAlert && p.TrackInventory);
 
             var snapshot = new DashboardSnapshot
             {
                 TenantId = null,
                 SnapshotDate = now,
-                TotalRevenue = ordersList
-                    .Where(o => o.PaymentStatus == PaymentStatus.Paid)
-                    .Sum(o => o.Total),
-                RevenueThisMonth = ordersList
-                    .Where(o => o.PaymentStatus == PaymentStatus.Paid && o.CreatedAt >= startOfMonth)
-                    .Sum(o => o.Total),
-                TotalOrders = ordersList.Count,
-                OrdersThisMonth = ordersList.Count(o => o.CreatedAt >= startOfMonth),
-                TotalCustomers = customers.Count(),
-                NewCustomersThisMonth = customers.Count(c => c.CreatedAt >= startOfMonth),
-                TotalProducts = productsList.Count,
-                ActiveProducts = productsList.Count(p => p.IsActive),
-                LowStockProducts = productsList.Count(p => p.Stock <= p.LowStockAlert && p.TrackInventory),
-                PendingOrders = ordersList.Count(o => o.Status == OrderStatus.Pending),
-                ProcessingOrders = ordersList.Count(o => o.Status == OrderStatus.Processing),
-                ShippedOrders = ordersList.Count(o => o.Status == OrderStatus.Shipped),
-                DeliveredOrders = ordersList.Count(o => o.Status == OrderStatus.Delivered),
-                CancelledOrders = ordersList.Count(o => o.Status == OrderStatus.Cancelled)
+                TotalRevenue = totalRevenue,
+                RevenueThisMonth = revenueThisMonth,
+                TotalOrders = totalOrders,
+                OrdersThisMonth = ordersThisMonth,
+                TotalCustomers = totalCustomers,
+                NewCustomersThisMonth = newCustomersThisMonth,
+                TotalProducts = totalProducts,
+                ActiveProducts = activeProducts,
+                LowStockProducts = lowStockProducts,
+                PendingOrders = pendingOrders,
+                ProcessingOrders = processingOrders,
+                ShippedOrders = shippedOrders,
+                DeliveredOrders = deliveredOrders,
+                CancelledOrders = cancelledOrders
             };
 
-            await unitOfWork.DashboardSnapshots.AddAsync(snapshot);
-            await unitOfWork.SaveChangesAsync();
+            await db.DashboardSnapshots.AddAsync(snapshot);
+            await db.SaveChangesAsync();
         }
     }
 }

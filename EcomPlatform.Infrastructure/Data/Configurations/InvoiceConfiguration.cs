@@ -15,6 +15,9 @@ namespace EcomPlatform.Infrastructure.Data.Configurations
                 .HasMaxLength(50);
 
             builder.HasIndex(i => i.InvoiceNumber).IsUnique();
+            builder.HasIndex(i => i.TenantId);
+            builder.HasIndex(i => new { i.TenantId, i.Status });
+            builder.HasIndex(i => new { i.TenantId, i.CreatedAt });
 
             builder.Property(i => i.SubTotal)
                 .HasColumnType("decimal(18,2)");

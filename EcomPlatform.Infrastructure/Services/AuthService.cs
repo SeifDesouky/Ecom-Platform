@@ -17,19 +17,23 @@ namespace EcomPlatform.Infrastructure.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly JwtSettings _jwtSettings;
+        private readonly IEmailService _emailService;
 
-        public AuthService(IUnitOfWork unitOfWork, JwtSettings jwtSettings)
+        public AuthService(IUnitOfWork unitOfWork, JwtSettings jwtSettings, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _jwtSettings = jwtSettings;
+            _emailService = emailService;
         }
 
         public async Task<ApiResponse<AuthResponseDto>> RegisterAsync(RegisterDto dto)
         {
-            // Check if email exists
             var existingUsers = await _unitOfWork.Users.FindAsync(u => u.Email == dto.Email);
             if (existingUsers.Any())
                 return ApiResponse<AuthResponseDto>.Fail("Email already exists");
+
+            // منع أي حد يسجل نفسه كـ SuperAdmin عن طريق الـ API
+            var role = dto.Role == UserRole.SuperAdmin ? UserRole.TenantAdmin : dto.Role;
 
             var user = new User
             {
@@ -38,7 +42,7 @@ namespace EcomPlatform.Infrastructure.Services
                 Email = dto.Email,
                 Phone = dto.Phone,
                 PasswordHash = HashPassword(dto.Password),
-                Role = UserRole.TenantAdmin,
+                Role = role,
                 IsActive = true,
                 RefreshToken = GenerateRefreshToken(),
                 RefreshTokenExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryInDays)
@@ -48,6 +52,11 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.SaveChangesAsync();
 
             var token = GenerateJwtToken(user);
+
+            _ = _emailService.SendWelcomeAsync(
+                user.Email,
+                $"{user.FirstName} {user.LastName}".Trim(),
+                "Fatora Platform");
 
             return ApiResponse<AuthResponseDto>.Ok(new AuthResponseDto
             {
@@ -115,19 +124,23 @@ namespace EcomPlatform.Infrastructure.Services
             }, "Token refreshed");
         }
 
-        // Private Helpers
+        // ── Private Helpers ──────────────────────────────────────────────────
+
         private string GenerateJwtToken(User user)
         {
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString()),
-                new Claim("TenantId", user.TenantId?.ToString() ?? ""),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("role", user.Role.ToString()),
+                new Claim("tenantId", user.TenantId?.ToString() ?? ""),
+                new Claim("userId", user.Id.ToString()),
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(

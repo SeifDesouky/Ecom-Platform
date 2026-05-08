@@ -1,4 +1,6 @@
-﻿using EcomPlatform.Application.DTOs.Plans;
+﻿using Asp.Versioning;
+using EcomPlatform.Application.Common;
+using EcomPlatform.Application.DTOs.Plans;
 using EcomPlatform.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace EcomPlatform.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [Authorize]
     public class PlansController : ControllerBase
     {
@@ -17,6 +20,7 @@ namespace EcomPlatform.API.Controllers
             _planService = planService;
         }
 
+        // AllowAnonymous — الـ pricing page عامة للكل
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> GetAll()
@@ -25,7 +29,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // AllowAnonymous — تفاصيل plan معينة
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _planService.GetByIdAsync(id);
@@ -34,7 +40,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // SuperAdmin فقط — إنشاء plan جديد
         [HttpPost]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> Create([FromBody] CreatePlanDto dto)
         {
             var result = await _planService.CreateAsync(dto);
@@ -43,7 +51,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // SuperAdmin فقط — تعديل plan
         [HttpPut("{id}")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> Update(Guid id, [FromBody] CreatePlanDto dto)
         {
             var result = await _planService.UpdateAsync(id, dto);
@@ -52,7 +62,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // SuperAdmin فقط — حذف plan
         [HttpDelete("{id}")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _planService.DeleteAsync(id);
@@ -61,7 +73,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // SuperAdmin فقط — تفعيل/تعطيل plan
         [HttpPatch("{id}/toggle-status")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> ToggleStatus(Guid id)
         {
             var result = await _planService.ToggleStatusAsync(id);
@@ -70,7 +84,11 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // ─── Subscriptions ────────────────────────────────────────────────────
+
+        // TenantAdmin وفوق — الاشتراك في plan
         [HttpPost("subscribe")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> Subscribe([FromBody] CreateSubscriptionDto dto)
         {
             var result = await _planService.SubscribeAsync(dto);
@@ -79,7 +97,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — يشوف subscription الـ tenant
         [HttpGet("subscription/tenant/{tenantId}")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> GetTenantSubscription(Guid tenantId)
         {
             var result = await _planService.GetTenantSubscriptionAsync(tenantId);
@@ -88,7 +108,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — إلغاء subscription
         [HttpPatch("subscription/{subscriptionId}/cancel")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> CancelSubscription(Guid subscriptionId)
         {
             var result = await _planService.CancelSubscriptionAsync(subscriptionId);
@@ -97,7 +119,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — تجديد subscription
         [HttpPatch("subscription/{subscriptionId}/renew")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> RenewSubscription(Guid subscriptionId)
         {
             var result = await _planService.RenewSubscriptionAsync(subscriptionId);

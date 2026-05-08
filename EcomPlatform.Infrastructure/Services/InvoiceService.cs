@@ -10,10 +10,12 @@ namespace EcomPlatform.Infrastructure.Services
     public class InvoiceService : IInvoiceService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmailService _emailService;
 
-        public InvoiceService(IUnitOfWork unitOfWork)
+        public InvoiceService(IUnitOfWork unitOfWork, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
+            _emailService = emailService;
         }
 
         public async Task<ApiResponse<InvoiceResponseDto>> GenerateFromOrderAsync(Guid orderId)
@@ -61,6 +63,17 @@ namespace EcomPlatform.Infrastructure.Services
 
             invoice.Order = order;
 
+            // Send invoice email (fire-and-forget)
+            if (!string.IsNullOrEmpty(invoice.CustomerEmail))
+            {
+                _ = _emailService.SendInvoiceAsync(
+                    invoice.CustomerEmail,
+                    invoice.CustomerName,
+                    invoice.InvoiceNumber,
+                    invoice.Total,
+                    invoice.DueDate);
+            }
+
             return ApiResponse<InvoiceResponseDto>.Ok(MapToDto(invoice), "Invoice generated successfully");
         }
 
@@ -96,18 +109,25 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<InvoiceResponseDto>.Ok(MapToDto(invoice));
         }
 
-        public async Task<ApiResponse<IEnumerable<InvoiceResponseDto>>> GetAllByTenantAsync(Guid tenantId)
+        public async Task<ApiResponse<PagedResponse<InvoiceResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination)
         {
-            var invoices = await _unitOfWork.Invoices.FindAsync(i => i.TenantId == tenantId);
-            var invoicesList = invoices.ToList();
+            var all = await _unitOfWork.Invoices.FindAsync(i => i.TenantId == tenantId);
+            var totalCount = all.Count();
 
-            foreach (var invoice in invoicesList)
+            var paged = all
+                .OrderByDescending(i => i.CreatedAt)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .ToList();
+
+            foreach (var invoice in paged)
             {
                 var items = await _unitOfWork.InvoiceItems.FindAsync(i => i.InvoiceId == invoice.Id);
                 invoice.Items = items.ToList();
             }
 
-            return ApiResponse<IEnumerable<InvoiceResponseDto>>.Ok(invoicesList.Select(MapToDto));
+            var result = PagedResponse<InvoiceResponseDto>.Create(paged.Select(MapToDto).ToList(), totalCount, pagination);
+            return ApiResponse<PagedResponse<InvoiceResponseDto>>.Ok(result);
         }
 
         public async Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, InvoiceStatus status)

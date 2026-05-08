@@ -1,4 +1,6 @@
-﻿namespace EcomPlatform.Application.DTOs.Auth
+﻿using EcomPlatform.Core.Enums;
+
+namespace EcomPlatform.Application.DTOs.Auth
 {
     public class RegisterDto
     {
@@ -7,5 +9,6 @@
         public string Email { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+        public UserRole Role { get; set; } = UserRole.TenantAdmin;
     }
 }

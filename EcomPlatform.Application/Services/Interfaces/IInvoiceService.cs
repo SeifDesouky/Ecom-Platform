@@ -9,7 +9,7 @@ namespace EcomPlatform.Application.Services.Interfaces
         Task<ApiResponse<InvoiceResponseDto>> GenerateFromOrderAsync(Guid orderId);
         Task<ApiResponse<InvoiceResponseDto>> GetByIdAsync(Guid id);
         Task<ApiResponse<InvoiceResponseDto>> GetByOrderIdAsync(Guid orderId);
-        Task<ApiResponse<IEnumerable<InvoiceResponseDto>>> GetAllByTenantAsync(Guid tenantId);
+        Task<ApiResponse<PagedResponse<InvoiceResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination);
         Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, InvoiceStatus status);
         Task<ApiResponse<bool>> DeleteAsync(Guid id);
     }

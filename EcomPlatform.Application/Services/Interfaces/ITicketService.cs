@@ -8,8 +8,8 @@ namespace EcomPlatform.Application.Services.Interfaces
     {
         Task<ApiResponse<TicketResponseDto>> CreateAsync(CreateTicketDto dto);
         Task<ApiResponse<TicketResponseDto>> GetByIdAsync(Guid id);
-        Task<ApiResponse<IEnumerable<TicketResponseDto>>> GetAllByTenantAsync(Guid tenantId);
-        Task<ApiResponse<IEnumerable<TicketResponseDto>>> GetAllAsync();
+        Task<ApiResponse<PagedResponse<TicketResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination);
+        Task<ApiResponse<PagedResponse<TicketResponseDto>>> GetAllAsync(PaginationParams pagination);
         Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, TicketStatus status);
         Task<ApiResponse<TicketReplyResponseDto>> AddReplyAsync(CreateTicketReplyDto dto);
         Task<ApiResponse<bool>> DeleteAsync(Guid id);

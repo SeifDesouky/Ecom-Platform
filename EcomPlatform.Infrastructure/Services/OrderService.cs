@@ -10,22 +10,27 @@ namespace EcomPlatform.Infrastructure.Services
     public class OrderService : IOrderService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmailService _emailService;
 
-        public OrderService(IUnitOfWork unitOfWork)
+        public OrderService(IUnitOfWork unitOfWork, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
+            _emailService = emailService;
         }
 
         public async Task<ApiResponse<OrderResponseDto>> CreateAsync(CreateOrderDto dto)
         {
-            // Calculate totals
+            // جيب كل الـ products بـ query واحدة بدل N+1
+            var productIds = dto.Items.Select(i => i.ProductId).ToHashSet();
+            var allProducts = await _unitOfWork.Products.FindAsync(p => productIds.Contains(p.Id));
+            var productMap = allProducts.ToDictionary(p => p.Id);
+
             decimal subTotal = 0;
             var orderItems = new List<OrderItem>();
 
             foreach (var item in dto.Items)
             {
-                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
-                if (product == null)
+                if (!productMap.TryGetValue(item.ProductId, out var product))
                     return ApiResponse<OrderResponseDto>.Fail($"Product {item.ProductId} not found");
 
                 if (product.TrackInventory && product.Stock < item.Quantity)
@@ -45,7 +50,6 @@ namespace EcomPlatform.Infrastructure.Services
                     TotalPrice = totalPrice
                 });
 
-                // Update stock
                 if (product.TrackInventory)
                 {
                     product.Stock -= item.Quantity;
@@ -83,6 +87,15 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Orders.AddAsync(order);
             await _unitOfWork.SaveChangesAsync();
 
+            if (!string.IsNullOrEmpty(order.CustomerEmail))
+            {
+                _ = _emailService.SendOrderConfirmationAsync(
+                    order.CustomerEmail,
+                    order.CustomerName,
+                    order.OrderNumber,
+                    order.Total);
+            }
+
             return ApiResponse<OrderResponseDto>.Ok(MapToDto(order), "Order created successfully");
         }
 
@@ -95,11 +108,18 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<OrderResponseDto>.Ok(MapToDto(order));
         }
 
-        public async Task<ApiResponse<IEnumerable<OrderResponseDto>>> GetAllByTenantAsync(Guid tenantId)
+        public async Task<ApiResponse<PagedResponse<OrderResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination)
         {
-            var orders = await _unitOfWork.Orders.FindAsync(o => o.TenantId == tenantId);
-            var result = orders.Select(MapToDto);
-            return ApiResponse<IEnumerable<OrderResponseDto>>.Ok(result);
+            var all = await _unitOfWork.Orders.FindAsync(o => o.TenantId == tenantId);
+            var totalCount = all.Count();
+            var items = all
+                .OrderByDescending(o => o.CreatedAt)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .Select(MapToDto)
+                .ToList();
+            var result = PagedResponse<OrderResponseDto>.Create(items, totalCount, pagination);
+            return ApiResponse<PagedResponse<OrderResponseDto>>.Ok(result);
         }
 
         public async Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, OrderStatus status)
@@ -146,6 +166,29 @@ namespace EcomPlatform.Infrastructure.Services
 
             if (order.Status == OrderStatus.Delivered)
                 return ApiResponse<bool>.Fail("Cannot cancel delivered order");
+
+            if (order.Status == OrderStatus.Cancelled)
+                return ApiResponse<bool>.Fail("Order is already cancelled");
+
+            // Restore stock
+            if (order.Items != null)
+            {
+                var productIds = order.Items.Select(i => i.ProductId).ToHashSet();
+                var products = await _unitOfWork.Products.FindAsync(p => productIds.Contains(p.Id));
+                var productMap = products.ToDictionary(p => p.Id);
+
+                foreach (var item in order.Items)
+                {
+                    if (!productMap.TryGetValue(item.ProductId, out var product)) continue;
+                    if (!product.TrackInventory) continue;
+
+                    product.Stock += item.Quantity;
+                    if (product.Status == ProductStatus.OutOfStock && product.Stock > 0)
+                        product.Status = ProductStatus.Active;
+
+                    await _unitOfWork.Products.UpdateAsync(product);
+                }
+            }
 
             order.Status = OrderStatus.Cancelled;
             await _unitOfWork.Orders.UpdateAsync(order);

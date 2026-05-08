@@ -1,4 +1,6 @@
-﻿using EcomPlatform.Application.DTOs.Shipping;
+﻿using Asp.Versioning;
+using EcomPlatform.Application.Common;
+using EcomPlatform.Application.DTOs.Shipping;
 using EcomPlatform.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace EcomPlatform.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [Authorize]
     public class ShippingController : ControllerBase
     {
@@ -17,14 +20,20 @@ namespace EcomPlatform.API.Controllers
             _shippingService = shippingService;
         }
 
+        // ─── Zones ───────────────────────────────────────────────────────────
+
+        // Staff وفوق — يشوف الـ zones
         [HttpGet("zones/tenant/{tenantId}")]
+        [Authorize(Policy = Policies.TenantStaffOrAbove)]
         public async Task<IActionResult> GetZonesByTenant(Guid tenantId)
         {
             var result = await _shippingService.GetZonesByTenantAsync(tenantId);
             return Ok(result);
         }
 
+        // Staff وفوق — يشوف zone معينة
         [HttpGet("zones/{id}")]
+        [Authorize(Policy = Policies.TenantStaffOrAbove)]
         public async Task<IActionResult> GetZoneById(Guid id)
         {
             var result = await _shippingService.GetZoneByIdAsync(id);
@@ -33,7 +42,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — إنشاء zone
         [HttpPost("zones")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> CreateZone([FromBody] CreateShippingZoneDto dto)
         {
             var result = await _shippingService.CreateZoneAsync(dto);
@@ -42,7 +53,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — حذف zone
         [HttpDelete("zones/{id}")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> DeleteZone(Guid id)
         {
             var result = await _shippingService.DeleteZoneAsync(id);
@@ -51,7 +64,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — تفعيل/تعطيل zone
         [HttpPatch("zones/{id}/toggle-status")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> ToggleZoneStatus(Guid id)
         {
             var result = await _shippingService.ToggleZoneStatusAsync(id);
@@ -60,7 +75,11 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // ─── Methods ─────────────────────────────────────────────────────────
+
+        // TenantAdmin وفوق — إنشاء shipping method
         [HttpPost("methods")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> CreateMethod([FromBody] CreateShippingMethodDto dto)
         {
             var result = await _shippingService.CreateMethodAsync(dto);
@@ -69,7 +88,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — حذف shipping method
         [HttpDelete("methods/{id}")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> DeleteMethod(Guid id)
         {
             var result = await _shippingService.DeleteMethodAsync(id);
@@ -78,7 +99,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — تفعيل/تعطيل method
         [HttpPatch("methods/{id}/toggle-status")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> ToggleMethodStatus(Guid id)
         {
             var result = await _shippingService.ToggleMethodStatusAsync(id);
@@ -87,6 +110,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // ─── Calculate ───────────────────────────────────────────────────────
+
+        // AllowAnonymous — الـ storefront يحسب الشحن قبل الـ checkout
         [HttpPost("calculate")]
         [AllowAnonymous]
         public async Task<IActionResult> Calculate([FromBody] CalculateShippingDto dto)

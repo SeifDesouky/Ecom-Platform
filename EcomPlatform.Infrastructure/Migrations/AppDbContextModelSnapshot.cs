@@ -160,6 +160,12 @@ namespace EcomPlatform.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("TenantId", "CreatedAt");
+
+                    b.HasIndex("TenantId", "EntityName");
+
+                    b.HasIndex("TenantId", "UserId");
+
                     b.ToTable("AuditLogs");
                 });
 
@@ -213,6 +219,8 @@ namespace EcomPlatform.Infrastructure.Migrations
 
                     b.HasIndex("Slug", "TenantId")
                         .IsUnique();
+
+                    b.HasIndex("TenantId", "ParentId");
 
                     b.ToTable("Categories");
                 });
@@ -278,6 +286,8 @@ namespace EcomPlatform.Infrastructure.Migrations
 
                     b.HasIndex("Code", "TenantId")
                         .IsUnique();
+
+                    b.HasIndex("TenantId", "IsActive");
 
                     b.ToTable("Coupons");
                 });
@@ -349,6 +359,8 @@ namespace EcomPlatform.Infrastructure.Migrations
 
                     b.HasIndex("Email", "TenantId")
                         .IsUnique();
+
+                    b.HasIndex("TenantId", "CreatedAt");
 
                     b.ToTable("Customers");
                 });
@@ -565,6 +577,10 @@ namespace EcomPlatform.Infrastructure.Migrations
 
                     b.HasIndex("TenantId");
 
+                    b.HasIndex("TenantId", "CreatedAt");
+
+                    b.HasIndex("TenantId", "Status");
+
                     b.ToTable("Invoices");
                 });
 
@@ -660,6 +676,10 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.HasIndex("TenantId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("TenantId", "IsRead");
+
+                    b.HasIndex("TenantId", "UserId");
 
                     b.ToTable("Notifications");
                 });
@@ -765,6 +785,10 @@ namespace EcomPlatform.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "CreatedAt");
+
+                    b.HasIndex("TenantId", "Status");
 
                     b.ToTable("Orders");
                 });
@@ -1048,6 +1072,12 @@ namespace EcomPlatform.Infrastructure.Migrations
 
                     b.HasIndex("Slug", "TenantId")
                         .IsUnique();
+
+                    b.HasIndex("TenantId", "CategoryId");
+
+                    b.HasIndex("TenantId", "IsActive");
+
+                    b.HasIndex("TenantId", "Status");
 
                     b.ToTable("Products");
                 });
@@ -1460,6 +1490,10 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.HasIndex("CreatedById");
 
                     b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "CreatedAt");
+
+                    b.HasIndex("TenantId", "Status");
 
                     b.ToTable("Tickets");
                 });

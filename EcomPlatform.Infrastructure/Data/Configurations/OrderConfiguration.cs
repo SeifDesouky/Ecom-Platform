@@ -15,6 +15,9 @@ namespace EcomPlatform.Infrastructure.Data.Configurations
                 .HasMaxLength(50);
 
             builder.HasIndex(o => o.OrderNumber).IsUnique();
+            builder.HasIndex(o => o.TenantId);
+            builder.HasIndex(o => new { o.TenantId, o.Status });
+            builder.HasIndex(o => new { o.TenantId, o.CreatedAt });
 
             builder.Property(o => o.SubTotal)
                 .HasColumnType("decimal(18,2)");

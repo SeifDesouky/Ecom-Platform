@@ -7,8 +7,8 @@ namespace EcomPlatform.Application.Services.Interfaces
     {
         Task<ApiResponse<ProductResponseDto>> CreateAsync(CreateProductDto dto);
         Task<ApiResponse<ProductResponseDto>> GetByIdAsync(Guid id);
-        Task<ApiResponse<IEnumerable<ProductResponseDto>>> GetAllByTenantAsync(Guid tenantId);
-        Task<ApiResponse<IEnumerable<ProductResponseDto>>> GetByCategoryAsync(Guid categoryId);
+        Task<ApiResponse<PagedResponse<ProductResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination);
+        Task<ApiResponse<PagedResponse<ProductResponseDto>>> GetByCategoryAsync(Guid categoryId, PaginationParams pagination);
         Task<ApiResponse<ProductResponseDto>> UpdateAsync(Guid id, UpdateProductDto dto);
         Task<ApiResponse<bool>> DeleteAsync(Guid id);
         Task<ApiResponse<bool>> ToggleStatusAsync(Guid id);

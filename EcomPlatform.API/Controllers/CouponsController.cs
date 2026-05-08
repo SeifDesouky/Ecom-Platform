@@ -1,4 +1,6 @@
-﻿using EcomPlatform.Application.DTOs.Coupons;
+﻿using Asp.Versioning;
+using EcomPlatform.Application.Common;
+using EcomPlatform.Application.DTOs.Coupons;
 using EcomPlatform.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace EcomPlatform.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [Authorize]
     public class CouponsController : ControllerBase
     {
@@ -17,14 +20,18 @@ namespace EcomPlatform.API.Controllers
             _couponService = couponService;
         }
 
+        // Staff وفوق — يشوف coupons الـ tenant
         [HttpGet("tenant/{tenantId}")]
-        public async Task<IActionResult> GetAllByTenant(Guid tenantId)
+        [Authorize(Policy = Policies.TenantStaffOrAbove)]
+        public async Task<IActionResult> GetAllByTenant(Guid tenantId, [FromQuery] PaginationParams pagination)
         {
-            var result = await _couponService.GetAllByTenantAsync(tenantId);
+            var result = await _couponService.GetAllByTenantAsync(tenantId, pagination);
             return Ok(result);
         }
 
+        // Staff وفوق — يشوف coupon معين
         [HttpGet("{id}")]
+        [Authorize(Policy = Policies.TenantStaffOrAbove)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _couponService.GetByIdAsync(id);
@@ -33,7 +40,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — إنشاء coupon
         [HttpPost]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> Create([FromBody] CreateCouponDto dto)
         {
             var result = await _couponService.CreateAsync(dto);
@@ -42,7 +51,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — حذف coupon
         [HttpDelete("{id}")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _couponService.DeleteAsync(id);
@@ -51,7 +62,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — تفعيل/تعطيل coupon
         [HttpPatch("{id}/toggle-status")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> ToggleStatus(Guid id)
         {
             var result = await _couponService.ToggleStatusAsync(id);
@@ -60,6 +73,7 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // AllowAnonymous — الـ storefront يتحقق من الكوبون بدون login
         [HttpPost("validate")]
         [AllowAnonymous]
         public async Task<IActionResult> Validate([FromBody] ValidateCouponDto dto)

@@ -62,11 +62,18 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<PageResponseDto>.Ok(MapPageToDto(page));
         }
 
-        public async Task<ApiResponse<IEnumerable<PageResponseDto>>> GetAllPagesAsync(Guid? tenantId)
+        public async Task<ApiResponse<PagedResponse<PageResponseDto>>> GetAllPagesAsync(Guid? tenantId, PaginationParams pagination)
         {
-            var pages = await _unitOfWork.Pages.FindAsync(p => p.TenantId == tenantId);
-            return ApiResponse<IEnumerable<PageResponseDto>>.Ok(
-                pages.OrderBy(p => p.SortOrder).Select(MapPageToDto));
+            var all = await _unitOfWork.Pages.FindAsync(p => p.TenantId == tenantId);
+            var totalCount = all.Count();
+            var items = all
+                .OrderBy(p => p.SortOrder)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .Select(MapPageToDto)
+                .ToList();
+            var result = PagedResponse<PageResponseDto>.Create(items, totalCount, pagination);
+            return ApiResponse<PagedResponse<PageResponseDto>>.Ok(result);
         }
 
         public async Task<ApiResponse<PageResponseDto>> UpdatePageAsync(Guid id, CreatePageDto dto)
@@ -174,11 +181,18 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<ArticleResponseDto>.Ok(MapArticleToDto(article));
         }
 
-        public async Task<ApiResponse<IEnumerable<ArticleResponseDto>>> GetAllArticlesAsync(Guid? tenantId)
+        public async Task<ApiResponse<PagedResponse<ArticleResponseDto>>> GetAllArticlesAsync(Guid? tenantId, PaginationParams pagination)
         {
-            var articles = await _unitOfWork.Articles.FindAsync(a => a.TenantId == tenantId);
-            return ApiResponse<IEnumerable<ArticleResponseDto>>.Ok(
-                articles.OrderByDescending(a => a.CreatedAt).Select(MapArticleToDto));
+            var all = await _unitOfWork.Articles.FindAsync(a => a.TenantId == tenantId);
+            var totalCount = all.Count();
+            var items = all
+                .OrderByDescending(a => a.CreatedAt)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .Select(MapArticleToDto)
+                .ToList();
+            var result = PagedResponse<ArticleResponseDto>.Create(items, totalCount, pagination);
+            return ApiResponse<PagedResponse<ArticleResponseDto>>.Ok(result);
         }
 
         public async Task<ApiResponse<ArticleResponseDto>> UpdateArticleAsync(Guid id, CreateArticleDto dto)

@@ -10,10 +10,12 @@ namespace EcomPlatform.Infrastructure.Services
     public class ProductService : IProductService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmailService _emailService;
 
-        public ProductService(IUnitOfWork unitOfWork)
+        public ProductService(IUnitOfWork unitOfWork, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
+            _emailService = emailService;
         }
 
         public async Task<ApiResponse<ProductResponseDto>> CreateAsync(CreateProductDto dto)
@@ -73,18 +75,32 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<ProductResponseDto>.Ok(MapToDto(product));
         }
 
-        public async Task<ApiResponse<IEnumerable<ProductResponseDto>>> GetAllByTenantAsync(Guid tenantId)
+        public async Task<ApiResponse<PagedResponse<ProductResponseDto>>> GetAllByTenantAsync(
+            Guid tenantId, PaginationParams pagination)
         {
-            var products = await _unitOfWork.Products.FindAsync(p => p.TenantId == tenantId);
-            var result = products.Select(MapToDto);
-            return ApiResponse<IEnumerable<ProductResponseDto>>.Ok(result);
+            var (items, totalCount) = await _unitOfWork.Products.GetPagedAsync(
+                p => p.TenantId == tenantId,
+                pagination.Skip,
+                pagination.PageSize);
+
+            var result = PagedResponse<ProductResponseDto>.Create(
+                items.Select(MapToDto).ToList(), totalCount, pagination);
+
+            return ApiResponse<PagedResponse<ProductResponseDto>>.Ok(result);
         }
 
-        public async Task<ApiResponse<IEnumerable<ProductResponseDto>>> GetByCategoryAsync(Guid categoryId)
+        public async Task<ApiResponse<PagedResponse<ProductResponseDto>>> GetByCategoryAsync(
+            Guid categoryId, PaginationParams pagination)
         {
-            var products = await _unitOfWork.Products.FindAsync(p => p.CategoryId == categoryId);
-            var result = products.Select(MapToDto);
-            return ApiResponse<IEnumerable<ProductResponseDto>>.Ok(result);
+            var (items, totalCount) = await _unitOfWork.Products.GetPagedAsync(
+                p => p.CategoryId == categoryId,
+                pagination.Skip,
+                pagination.PageSize);
+
+            var result = PagedResponse<ProductResponseDto>.Create(
+                items.Select(MapToDto).ToList(), totalCount, pagination);
+
+            return ApiResponse<PagedResponse<ProductResponseDto>>.Ok(result);
         }
 
         public async Task<ApiResponse<ProductResponseDto>> UpdateAsync(Guid id, UpdateProductDto dto)
@@ -155,6 +171,20 @@ namespace EcomPlatform.Infrastructure.Services
 
             await _unitOfWork.Products.UpdateAsync(product);
             await _unitOfWork.SaveChangesAsync();
+
+            if (product.TrackInventory && product.LowStockAlert > 0 && quantity <= product.LowStockAlert)
+            {
+                var admins = await _unitOfWork.Users.FindAsync(u =>
+                    u.TenantId == product.TenantId && u.Role == Core.Enums.UserRole.TenantAdmin);
+                foreach (var admin in admins)
+                {
+                    _ = _emailService.SendLowStockAlertAsync(
+                        admin.Email,
+                        product.Name,
+                        quantity,
+                        product.LowStockAlert);
+                }
+            }
 
             return ApiResponse<bool>.Ok(true, "Stock updated successfully");
         }

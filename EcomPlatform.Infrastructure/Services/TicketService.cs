@@ -10,10 +10,12 @@ namespace EcomPlatform.Infrastructure.Services
     public class TicketService : ITicketService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmailService _emailService;
 
-        public TicketService(IUnitOfWork unitOfWork)
+        public TicketService(IUnitOfWork unitOfWork, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
+            _emailService = emailService;
         }
 
         public async Task<ApiResponse<TicketResponseDto>> CreateAsync(CreateTicketDto dto)
@@ -53,16 +55,32 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<TicketResponseDto>.Ok(MapToDto(ticket));
         }
 
-        public async Task<ApiResponse<IEnumerable<TicketResponseDto>>> GetAllByTenantAsync(Guid tenantId)
+        public async Task<ApiResponse<PagedResponse<TicketResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination)
         {
-            var tickets = await _unitOfWork.Tickets.FindAsync(t => t.TenantId == tenantId);
-            return ApiResponse<IEnumerable<TicketResponseDto>>.Ok(tickets.Select(MapToDto));
+            var all = await _unitOfWork.Tickets.FindAsync(t => t.TenantId == tenantId);
+            var totalCount = all.Count();
+            var items = all
+                .OrderByDescending(t => t.CreatedAt)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .Select(MapToDto)
+                .ToList();
+            var result = PagedResponse<TicketResponseDto>.Create(items, totalCount, pagination);
+            return ApiResponse<PagedResponse<TicketResponseDto>>.Ok(result);
         }
 
-        public async Task<ApiResponse<IEnumerable<TicketResponseDto>>> GetAllAsync()
+        public async Task<ApiResponse<PagedResponse<TicketResponseDto>>> GetAllAsync(PaginationParams pagination)
         {
-            var tickets = await _unitOfWork.Tickets.GetAllAsync();
-            return ApiResponse<IEnumerable<TicketResponseDto>>.Ok(tickets.Select(MapToDto));
+            var all = await _unitOfWork.Tickets.GetAllAsync();
+            var totalCount = all.Count();
+            var items = all
+                .OrderByDescending(t => t.CreatedAt)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .Select(MapToDto)
+                .ToList();
+            var result = PagedResponse<TicketResponseDto>.Create(items, totalCount, pagination);
+            return ApiResponse<PagedResponse<TicketResponseDto>>.Ok(result);
         }
 
         public async Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, TicketStatus status)
@@ -102,6 +120,20 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.SaveChangesAsync();
 
             var user = await _unitOfWork.Users.GetByIdAsync(dto.CreatedById);
+
+            // Notify customer when staff replies
+            if (dto.IsStaff)
+            {
+                var ticketCreator = await _unitOfWork.Users.GetByIdAsync(ticket.CreatedById);
+                if (ticketCreator != null && !string.IsNullOrEmpty(ticketCreator.Email))
+                {
+                    _ = _emailService.SendTicketReplyAsync(
+                        ticketCreator.Email,
+                        $"{ticketCreator.FirstName} {ticketCreator.LastName}".Trim(),
+                        ticket.Subject,
+                        dto.Message);
+                }
+            }
 
             return ApiResponse<TicketReplyResponseDto>.Ok(new TicketReplyResponseDto
             {

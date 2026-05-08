@@ -49,52 +49,142 @@ namespace EcomPlatform.Infrastructure.Data
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-            // Global Tenant Filters
+            // ================================================================
+            // Global Query Filters
+            // القاعدة: كل entity بـ TenantId → filter بالـ TenantId + IsDeleted
+            // كل entity بدون TenantId (global) → filter بالـ IsDeleted فقط
+            // مهم: HasQueryFilter يُستدعى مرة واحدة بس لكل entity
+            // ================================================================
+
+            // --- Tenant-scoped entities (TenantId + IsDeleted) ---
 
             modelBuilder.Entity<Product>()
                 .HasQueryFilter(x =>
-                    !_tenantProvider.TenantId.HasValue ||
-                    x.TenantId == _tenantProvider.TenantId);
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
 
             modelBuilder.Entity<Category>()
                 .HasQueryFilter(x =>
-                    !_tenantProvider.TenantId.HasValue ||
-                    x.TenantId == _tenantProvider.TenantId);
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
 
             modelBuilder.Entity<Order>()
                 .HasQueryFilter(x =>
-                    !_tenantProvider.TenantId.HasValue ||
-                    x.TenantId == _tenantProvider.TenantId);
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
 
             modelBuilder.Entity<Customer>()
                 .HasQueryFilter(x =>
-                    !_tenantProvider.TenantId.HasValue ||
-                    x.TenantId == _tenantProvider.TenantId);
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
 
             modelBuilder.Entity<Coupon>()
                 .HasQueryFilter(x =>
-                    !_tenantProvider.TenantId.HasValue ||
-                    x.TenantId == _tenantProvider.TenantId);
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
 
             modelBuilder.Entity<Invoice>()
                 .HasQueryFilter(x =>
-                    !_tenantProvider.TenantId.HasValue ||
-                    x.TenantId == _tenantProvider.TenantId);
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
 
             modelBuilder.Entity<ShippingZone>()
                 .HasQueryFilter(x =>
-                    !_tenantProvider.TenantId.HasValue ||
-                    x.TenantId == _tenantProvider.TenantId);
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
 
             modelBuilder.Entity<Subscription>()
                 .HasQueryFilter(x =>
-                    !_tenantProvider.TenantId.HasValue ||
-                    x.TenantId == _tenantProvider.TenantId);
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
 
             modelBuilder.Entity<TenantDomain>()
                 .HasQueryFilter(x =>
-                    !_tenantProvider.TenantId.HasValue ||
-                    x.TenantId == _tenantProvider.TenantId);
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            // --- المفقودين اللي اتضافوا دلوقتي ---
+
+            modelBuilder.Entity<Notification>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<Setting>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<Page>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<Article>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<Ticket>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<AuditLog>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            // --- Global entities (IsDeleted فقط، مش مربوطة بـ Tenant) ---
+
+            modelBuilder.Entity<User>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<Plan>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<Tenant>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            // --- Child entities بدون TenantId مباشر ---
+            // بتتفلتر تلقائياً عن طريق الـ parent (Order → OrderItem)
+            // بس نضيف IsDeleted عليهم على الأقل
+
+            modelBuilder.Entity<OrderItem>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<CustomerAddress>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<ProductImage>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<InvoiceItem>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<TicketReply>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<ShippingMethod>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<DashboardSnapshot>()
+                .HasQueryFilter(x => !x.IsDeleted);
         }
 
         public override Task<int> SaveChangesAsync(

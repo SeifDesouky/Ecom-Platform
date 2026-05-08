@@ -24,6 +24,11 @@ namespace EcomPlatform.Infrastructure.Data.Configurations
             builder.Property(a => a.UserAgent)
                 .HasMaxLength(300);
 
+            builder.HasIndex(a => a.TenantId);
+            builder.HasIndex(a => new { a.TenantId, a.EntityName });
+            builder.HasIndex(a => new { a.TenantId, a.CreatedAt });
+            builder.HasIndex(a => new { a.TenantId, a.UserId });
+
             builder.HasOne(a => a.User)
                 .WithMany()
                 .HasForeignKey(a => a.UserId)

@@ -1,11 +1,16 @@
-﻿using EcomPlatform.Application.DTOs.Auth;
+﻿using Asp.Versioning;
+using EcomPlatform.Application.DTOs.Auth;
 using EcomPlatform.Application.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace EcomPlatform.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [Authorize]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -16,6 +21,7 @@ namespace EcomPlatform.API.Controllers
         }
 
         [HttpPost("register")]
+        [EnableRateLimiting("login")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             var result = await _authService.RegisterAsync(dto);
@@ -25,6 +31,7 @@ namespace EcomPlatform.API.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             var result = await _authService.LoginAsync(dto);

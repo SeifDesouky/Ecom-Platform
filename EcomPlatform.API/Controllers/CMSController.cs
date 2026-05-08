@@ -1,4 +1,6 @@
-﻿using EcomPlatform.Application.DTOs.CMS;
+﻿using Asp.Versioning;
+using EcomPlatform.Application.Common;
+using EcomPlatform.Application.DTOs.CMS;
 using EcomPlatform.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace EcomPlatform.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [Authorize]
     public class CMSController : ControllerBase
     {
         private readonly ICMSService _cmsService;
@@ -16,16 +20,18 @@ namespace EcomPlatform.API.Controllers
             _cmsService = cmsService;
         }
 
-        // ==================== PAGES ====================
+        // ─── Pages ────────────────────────────────────────────────────────────
 
+        // AllowAnonymous — الـ storefront يقرأ الـ pages بدون login
         [HttpGet("pages/tenant/{tenantId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAllPages(Guid tenantId)
+        public async Task<IActionResult> GetAllPages(Guid tenantId, [FromQuery] PaginationParams pagination)
         {
-            var result = await _cmsService.GetAllPagesAsync(tenantId);
+            var result = await _cmsService.GetAllPagesAsync(tenantId, pagination);
             return Ok(result);
         }
 
+        // AllowAnonymous — page معينة بالـ id
         [HttpGet("pages/{id}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetPageById(Guid id)
@@ -36,6 +42,7 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // AllowAnonymous — page بالـ slug (SEO-friendly URLs)
         [HttpGet("pages/slug/{slug}/tenant/{tenantId}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetPageBySlug(string slug, Guid tenantId)
@@ -46,8 +53,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — إنشاء page
         [HttpPost("pages")]
-        [Authorize]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> CreatePage([FromBody] CreatePageDto dto)
         {
             var result = await _cmsService.CreatePageAsync(dto);
@@ -56,8 +64,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — تعديل page
         [HttpPut("pages/{id}")]
-        [Authorize]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> UpdatePage(Guid id, [FromBody] CreatePageDto dto)
         {
             var result = await _cmsService.UpdatePageAsync(id, dto);
@@ -66,8 +75,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — حذف page
         [HttpDelete("pages/{id}")]
-        [Authorize]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> DeletePage(Guid id)
         {
             var result = await _cmsService.DeletePageAsync(id);
@@ -76,8 +86,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — publish/unpublish page
         [HttpPatch("pages/{id}/toggle-publish")]
-        [Authorize]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> TogglePagePublish(Guid id)
         {
             var result = await _cmsService.TogglePagePublishAsync(id);
@@ -86,16 +97,18 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // ==================== ARTICLES ====================
+        // ─── Articles ─────────────────────────────────────────────────────────
 
+        // AllowAnonymous — الـ blog عام للكل
         [HttpGet("articles/tenant/{tenantId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAllArticles(Guid tenantId)
+        public async Task<IActionResult> GetAllArticles(Guid tenantId, [FromQuery] PaginationParams pagination)
         {
-            var result = await _cmsService.GetAllArticlesAsync(tenantId);
+            var result = await _cmsService.GetAllArticlesAsync(tenantId, pagination);
             return Ok(result);
         }
 
+        // AllowAnonymous — article معين
         [HttpGet("articles/{id}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetArticleById(Guid id)
@@ -106,6 +119,7 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // AllowAnonymous — article بالـ slug
         [HttpGet("articles/slug/{slug}/tenant/{tenantId}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetArticleBySlug(string slug, Guid tenantId)
@@ -116,8 +130,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — نشر article جديد
         [HttpPost("articles")]
-        [Authorize]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> CreateArticle([FromBody] CreateArticleDto dto)
         {
             var result = await _cmsService.CreateArticleAsync(dto);
@@ -126,8 +141,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — تعديل article
         [HttpPut("articles/{id}")]
-        [Authorize]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> UpdateArticle(Guid id, [FromBody] CreateArticleDto dto)
         {
             var result = await _cmsService.UpdateArticleAsync(id, dto);
@@ -136,8 +152,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — حذف article
         [HttpDelete("articles/{id}")]
-        [Authorize]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> DeleteArticle(Guid id)
         {
             var result = await _cmsService.DeleteArticleAsync(id);
@@ -146,8 +163,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — publish/unpublish article
         [HttpPatch("articles/{id}/toggle-publish")]
-        [Authorize]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> ToggleArticlePublish(Guid id)
         {
             var result = await _cmsService.ToggleArticlePublishAsync(id);

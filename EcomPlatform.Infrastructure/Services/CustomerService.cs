@@ -50,11 +50,18 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<CustomerResponseDto>.Ok(MapToDto(customer));
         }
 
-        public async Task<ApiResponse<IEnumerable<CustomerResponseDto>>> GetAllByTenantAsync(Guid tenantId)
+        public async Task<ApiResponse<PagedResponse<CustomerResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination)
         {
-            var customers = await _unitOfWork.Customers.FindAsync(c => c.TenantId == tenantId);
-            var result = customers.Select(MapToDto);
-            return ApiResponse<IEnumerable<CustomerResponseDto>>.Ok(result);
+            var all = await _unitOfWork.Customers.FindAsync(c => c.TenantId == tenantId);
+            var totalCount = all.Count();
+            var items = all
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .Select(MapToDto)
+                .ToList();
+            var result = PagedResponse<CustomerResponseDto>.Create(items, totalCount, pagination);
+            return ApiResponse<PagedResponse<CustomerResponseDto>>.Ok(result);
         }
 
         public async Task<ApiResponse<CustomerResponseDto>> UpdateAsync(Guid id, UpdateCustomerDto dto)

@@ -7,7 +7,7 @@ namespace EcomPlatform.Application.Services.Interfaces
     {
         Task<ApiResponse<CouponResponseDto>> CreateAsync(CreateCouponDto dto);
         Task<ApiResponse<CouponResponseDto>> GetByIdAsync(Guid id);
-        Task<ApiResponse<IEnumerable<CouponResponseDto>>> GetAllByTenantAsync(Guid tenantId);
+        Task<ApiResponse<PagedResponse<CouponResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination);
         Task<ApiResponse<bool>> DeleteAsync(Guid id);
         Task<ApiResponse<bool>> ToggleStatusAsync(Guid id);
         Task<ApiResponse<CouponValidationResponseDto>> ValidateAsync(ValidateCouponDto dto);

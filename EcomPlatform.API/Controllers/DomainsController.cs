@@ -1,4 +1,6 @@
-﻿using EcomPlatform.Application.DTOs.Domains;
+﻿using Asp.Versioning;
+using EcomPlatform.Application.Common;
+using EcomPlatform.Application.DTOs.Domains;
 using EcomPlatform.Application.Services.Interfaces;
 using EcomPlatform.Core.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace EcomPlatform.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [Authorize]
     public class DomainsController : ControllerBase
     {
@@ -18,14 +21,18 @@ namespace EcomPlatform.API.Controllers
             _domainService = domainService;
         }
 
+        // TenantAdmin وفوق — يشوف domains الـ tenant
         [HttpGet("tenant/{tenantId}")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> GetByTenant(Guid tenantId)
         {
             var result = await _domainService.GetByTenantAsync(tenantId);
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — يشوف domain معين
         [HttpGet("{id}")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _domainService.GetByIdAsync(id);
@@ -34,7 +41,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — إضافة domain جديد
         [HttpPost]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> AddDomain([FromBody] CreateTenantDomainDto dto)
         {
             var result = await _domainService.AddDomainAsync(dto);
@@ -43,7 +52,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — التحقق من الـ domain
         [HttpPatch("{id}/verify")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> Verify(Guid id)
         {
             var result = await _domainService.VerifyDomainAsync(id);
@@ -52,7 +63,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — تفعيل SSL
         [HttpPatch("{id}/enable-ssl")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> EnableSSL(Guid id)
         {
             var result = await _domainService.EnableSSLAsync(id);
@@ -61,7 +74,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — تحديد primary domain
         [HttpPatch("{id}/set-primary")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> SetPrimary(Guid id)
         {
             var result = await _domainService.SetPrimaryAsync(id);
@@ -70,7 +85,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // SuperAdmin فقط — تغيير status الـ domain (قرار المنصة)
         [HttpPatch("{id}/status")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] DomainStatus status)
         {
             var result = await _domainService.UpdateStatusAsync(id, status);
@@ -79,7 +96,9 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
+        // TenantAdmin وفوق — حذف domain
         [HttpDelete("{id}")]
+        [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _domainService.DeleteAsync(id);

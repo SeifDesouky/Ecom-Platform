@@ -53,10 +53,18 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<CouponResponseDto>.Ok(MapToDto(coupon));
         }
 
-        public async Task<ApiResponse<IEnumerable<CouponResponseDto>>> GetAllByTenantAsync(Guid tenantId)
+        public async Task<ApiResponse<PagedResponse<CouponResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination)
         {
-            var coupons = await _unitOfWork.Coupons.FindAsync(c => c.TenantId == tenantId);
-            return ApiResponse<IEnumerable<CouponResponseDto>>.Ok(coupons.Select(MapToDto));
+            var all = await _unitOfWork.Coupons.FindAsync(c => c.TenantId == tenantId);
+            var totalCount = all.Count();
+            var items = all
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .Select(MapToDto)
+                .ToList();
+            var result = PagedResponse<CouponResponseDto>.Create(items, totalCount, pagination);
+            return ApiResponse<PagedResponse<CouponResponseDto>>.Ok(result);
         }
 
         public async Task<ApiResponse<bool>> DeleteAsync(Guid id)
