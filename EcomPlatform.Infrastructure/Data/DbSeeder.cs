@@ -41,62 +41,62 @@ namespace EcomPlatform.Infrastructure.Data
             }
 
             var plans = new List<Plan>
-            {
-                new()
-                {
-                    Name = "Basic",
-                    Description = "مثالي للمتاجر الصغيرة والناشئة",
-                    MonthlyPrice = 99,
-                    YearlyPrice = 990,   // خصم شهر مجاناً
-                    IsActive = true,
-                    IsPopular = false,
-                    MaxProducts = 100,
-                    MaxOrders = 500,
-                    MaxCustomers = 1000,
-                    MaxUsers = 3,
-                    HasAnalytics = false,
-                    HasAPI = false,
-                    HasMultiCurrency = false,
-                    HasCustomDomain = false,
-                    HasPrioritySupport = false
-                },
-                new()
-                {
-                    Name = "Pro",
-                    Description = "للمتاجر النامية التي تحتاج مزيداً من القدرات",
-                    MonthlyPrice = 299,
-                    YearlyPrice = 2990,
-                    IsActive = true,
-                    IsPopular = true,   // الأكثر طلباً
-                    MaxProducts = 1000,
-                    MaxOrders = 5000,
-                    MaxCustomers = 10000,
-                    MaxUsers = 10,
-                    HasAnalytics = true,
-                    HasAPI = true,
-                    HasMultiCurrency = false,
-                    HasCustomDomain = true,
-                    HasPrioritySupport = false
-                },
-                new()
-                {
-                    Name = "Enterprise",
-                    Description = "للمتاجر الكبيرة بدون قيود",
-                    MonthlyPrice = 999,
-                    YearlyPrice = 9990,
-                    IsActive = true,
-                    IsPopular = false,
-                    MaxProducts = -1,   // غير محدود
-                    MaxOrders = -1,
-                    MaxCustomers = -1,
-                    MaxUsers = -1,
-                    HasAnalytics = true,
-                    HasAPI = true,
-                    HasMultiCurrency = true,
-                    HasCustomDomain = true,
-                    HasPrioritySupport = true
-                }
-            };
+    {
+        new()
+        {
+            Name = "Basic",
+            Description = "مثالي للمتاجر الصغيرة والناشئة",
+            MonthlyPrice = 99,
+            YearlyPrice = 990,
+            IsActive = true,
+            IsPopular = false,
+            MaxProducts = 100,
+            MaxOrders = 500,
+            MaxCustomers = 1000,
+            MaxUsers = 3,
+            HasAnalytics = false,
+            HasAPI = false,
+            HasMultiCurrency = false,
+            HasCustomDomain = false,
+            HasPrioritySupport = false
+        },
+        new()
+        {
+            Name = "Pro",
+            Description = "للمتاجر النامية التي تحتاج مزيداً من القدرات",
+            MonthlyPrice = 199,
+            YearlyPrice = 1990,
+            IsActive = true,
+            IsPopular = true,
+            MaxProducts = 500,
+            MaxOrders = 2000,
+            MaxCustomers = 5000,
+            MaxUsers = 10,
+            HasAnalytics = true,
+            HasAPI = true,
+            HasMultiCurrency = false,
+            HasCustomDomain = true,
+            HasPrioritySupport = false
+        },
+        new()
+        {
+            Name = "Enterprise",
+            Description = "للمتاجر الكبيرة بدون قيود",
+            MonthlyPrice = 499,
+            YearlyPrice = 4990,
+            IsActive = true,
+            IsPopular = false,
+            MaxProducts = -1,
+            MaxOrders = -1,
+            MaxCustomers = -1,
+            MaxUsers = -1,
+            HasAnalytics = true,
+            HasAPI = true,
+            HasMultiCurrency = true,
+            HasCustomDomain = true,
+            HasPrioritySupport = true
+        }
+    };
 
             await db.Plans.AddRangeAsync(plans);
             await db.SaveChangesAsync();

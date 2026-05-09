@@ -18,8 +18,9 @@
         public string MetaTitle { get; set; } = string.Empty;
         public string MetaDescription { get; set; } = string.Empty;
         public decimal Weight { get; set; }
-        public Guid TenantId { get; set; }
+        public Guid? TenantId { get; set; }
         public Guid CategoryId { get; set; }
+        public Guid CreatedById { get; set; }  // ← جديد
         public List<ProductImageDto> Images { get; set; } = new();
     }
 

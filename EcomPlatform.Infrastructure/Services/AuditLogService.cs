@@ -16,9 +16,16 @@ namespace EcomPlatform.Infrastructure.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task LogAsync(string entityName, string entityId, AuditAction action,
-            Guid userId, Guid? tenantId, string oldValue = "", string newValue = "",
-            string ipAddress = "", string userAgent = "")
+        public async Task LogAsync(
+            string entityName,
+            string entityId,
+            AuditAction action,
+            Guid userId,
+            Guid? tenantId,
+            string oldValue = "",
+            string newValue = "",
+            string ipAddress = "",
+            string userAgent = "")
         {
             var log = new AuditLog
             {
@@ -38,50 +45,79 @@ namespace EcomPlatform.Infrastructure.Services
         }
 
         public async Task<ApiResponse<IEnumerable<AuditLogResponseDto>>> GetByEntityAsync(
-            string entityName, string entityId)
+            string entityName,
+            string entityId)
         {
             var logs = await _unitOfWork.AuditLogs.FindAsync(l =>
                 l.EntityName == entityName && l.EntityId == entityId);
 
-            var result = logs.OrderByDescending(l => l.CreatedAt);
+            var ordered = logs.OrderByDescending(l => l.CreatedAt).ToList();
+
             return ApiResponse<IEnumerable<AuditLogResponseDto>>.Ok(
-                await EnrichWithUserNames(result));
+                await EnrichWithUserNamesAsync(ordered));
         }
 
         public async Task<ApiResponse<IEnumerable<AuditLogResponseDto>>> GetByTenantAsync(
-            Guid tenantId, int page = 1, int pageSize = 50)
+            Guid tenantId,
+            int page = 1,
+            int pageSize = 50)
         {
             var logs = await _unitOfWork.AuditLogs.FindAsync(l => l.TenantId == tenantId);
 
-            var result = logs.OrderByDescending(l => l.CreatedAt)
+            var paged = logs
+                .OrderByDescending(l => l.CreatedAt)
                 .Skip((page - 1) * pageSize)
-                .Take(pageSize);
+                .Take(pageSize)
+                .ToList();
 
             return ApiResponse<IEnumerable<AuditLogResponseDto>>.Ok(
-                await EnrichWithUserNames(result));
+                await EnrichWithUserNamesAsync(paged));
         }
 
         public async Task<ApiResponse<IEnumerable<AuditLogResponseDto>>> GetByUserAsync(
-            Guid userId, int page = 1, int pageSize = 50)
+            Guid userId,
+            int page = 1,
+            int pageSize = 50)
         {
             var logs = await _unitOfWork.AuditLogs.FindAsync(l => l.UserId == userId);
 
-            var result = logs.OrderByDescending(l => l.CreatedAt)
+            var paged = logs
+                .OrderByDescending(l => l.CreatedAt)
                 .Skip((page - 1) * pageSize)
-                .Take(pageSize);
+                .Take(pageSize)
+                .ToList();
 
             return ApiResponse<IEnumerable<AuditLogResponseDto>>.Ok(
-                await EnrichWithUserNames(result));
+                await EnrichWithUserNamesAsync(paged));
         }
 
-        private async Task<IEnumerable<AuditLogResponseDto>> EnrichWithUserNames(
-            IEnumerable<AuditLog> logs)
+        // ── Private Helpers ───────────────────────────────────────────────
+
+        /// <summary>
+        /// جلب أسماء المستخدمين في query واحدة بدل N+1 queries
+        /// </summary>
+        private async Task<IEnumerable<AuditLogResponseDto>> EnrichWithUserNamesAsync(
+            IReadOnlyList<AuditLog> logs)
         {
-            var result = new List<AuditLogResponseDto>();
-            foreach (var log in logs)
+            if (logs.Count == 0)
+                return Enumerable.Empty<AuditLogResponseDto>();
+
+            // ── جلب كل الـ users المطلوبين في call واحدة ─────────────────
+            var userIds = logs
+                .Select(l => l.UserId)
+                .Distinct()
+                .ToList();
+
+            var users = await _unitOfWork.Users.FindAsync(u => userIds.Contains(u.Id));
+
+            var usersDict = users.ToDictionary(u => u.Id);
+
+            // ── Map ───────────────────────────────────────────────────────
+            return logs.Select(log =>
             {
-                var user = await _unitOfWork.Users.GetByIdAsync(log.UserId);
-                result.Add(new AuditLogResponseDto
+                usersDict.TryGetValue(log.UserId, out var user);
+
+                return new AuditLogResponseDto
                 {
                     Id = log.Id,
                     EntityName = log.EntityName,
@@ -91,12 +127,13 @@ namespace EcomPlatform.Infrastructure.Services
                     NewValue = log.NewValue,
                     IPAddress = log.IPAddress,
                     UserId = log.UserId,
-                    UserName = user != null ? $"{user.FirstName} {user.LastName}" : string.Empty,
+                    UserName = user is not null
+                        ? $"{user.FirstName} {user.LastName}".Trim()
+                        : string.Empty,
                     TenantId = log.TenantId,
                     CreatedAt = log.CreatedAt
-                });
-            }
-            return result;
+                };
+            });
         }
     }
 }

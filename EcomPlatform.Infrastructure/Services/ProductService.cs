@@ -11,11 +11,16 @@ namespace EcomPlatform.Infrastructure.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmailService _emailService;
+        private readonly IAuditLogService _auditLogService;
 
-        public ProductService(IUnitOfWork unitOfWork, IEmailService emailService)
+        public ProductService(
+            IUnitOfWork unitOfWork,
+            IEmailService emailService,
+            IAuditLogService auditLogService)
         {
             _unitOfWork = unitOfWork;
             _emailService = emailService;
+            _auditLogService = auditLogService;
         }
 
         public async Task<ApiResponse<ProductResponseDto>> CreateAsync(CreateProductDto dto)
@@ -63,6 +68,14 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Products.AddAsync(product);
             await _unitOfWork.SaveChangesAsync();
 
+            await _auditLogService.LogAsync(
+                entityName: "Product",
+                entityId: product.Id.ToString(),
+                action: AuditAction.Create,
+                userId: dto.CreatedById,
+                tenantId: dto.TenantId,
+                newValue: $"Product '{product.Name}' created with price {product.Price}");
+
             return ApiResponse<ProductResponseDto>.Ok(MapToDto(product), "Product created successfully");
         }
 
@@ -109,6 +122,10 @@ namespace EcomPlatform.Infrastructure.Services
             if (product == null)
                 return ApiResponse<ProductResponseDto>.Fail("Product not found");
 
+            var oldPrice = product.Price;
+            var oldStock = product.Stock;
+            var oldName = product.Name;
+
             product.Name = dto.Name;
             product.Description = dto.Description;
             product.ShortDescription = dto.ShortDescription;
@@ -129,17 +146,47 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Products.UpdateAsync(product);
             await _unitOfWork.SaveChangesAsync();
 
+            var changes = new List<string>();
+            if (oldPrice != dto.Price) changes.Add($"Price: {oldPrice} → {dto.Price}");
+            if (oldStock != dto.Stock) changes.Add($"Stock: {oldStock} → {dto.Stock}");
+            if (oldName != dto.Name) changes.Add($"Name: '{oldName}' → '{dto.Name}'");
+
+            await _auditLogService.LogAsync(
+                entityName: "Product",
+                entityId: product.Id.ToString(),
+                action: AuditAction.Update,
+                userId: dto.UpdatedById,
+                tenantId: product.TenantId,
+                oldValue: $"Price:{oldPrice}, Stock:{oldStock}, Name:{oldName}",
+                newValue: changes.Any() ? string.Join(" | ", changes) : "No changes");
+
             return ApiResponse<ProductResponseDto>.Ok(MapToDto(product), "Product updated successfully");
         }
 
+        // ── signature يطابق الـ interface: DeleteAsync(Guid id) بدون deletedById ──
         public async Task<ApiResponse<bool>> DeleteAsync(Guid id)
         {
             var product = await _unitOfWork.Products.GetByIdAsync(id);
             if (product == null)
                 return ApiResponse<bool>.Fail("Product not found");
 
+            var productName = product.Name;
+            var productPrice = product.Price;
+            var tenantId = product.TenantId;
+
             await _unitOfWork.Products.DeleteAsync(id);
             await _unitOfWork.SaveChangesAsync();
+
+            // userId = Guid.Empty لأن الـ interface مش بيمرر deletedById
+            // لو محتاج تتتبع مين حذف، عدّل الـ interface يمرر userId
+            await _auditLogService.LogAsync(
+                entityName: "Product",
+                entityId: id.ToString(),
+                action: AuditAction.Delete,
+                userId: Guid.Empty,
+                tenantId: tenantId,
+                oldValue: $"Product '{productName}' (Price:{productPrice})",
+                newValue: "Deleted");
 
             return ApiResponse<bool>.Ok(true, "Product deleted successfully");
         }
@@ -175,7 +222,8 @@ namespace EcomPlatform.Infrastructure.Services
             if (product.TrackInventory && product.LowStockAlert > 0 && quantity <= product.LowStockAlert)
             {
                 var admins = await _unitOfWork.Users.FindAsync(u =>
-                    u.TenantId == product.TenantId && u.Role == Core.Enums.UserRole.TenantAdmin);
+                    u.TenantId == product.TenantId && u.Role == UserRole.TenantAdmin);
+
                 foreach (var admin in admins)
                 {
                     _ = _emailService.SendLowStockAlertAsync(

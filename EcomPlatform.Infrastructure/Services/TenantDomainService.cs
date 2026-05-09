@@ -85,8 +85,12 @@ namespace EcomPlatform.Infrastructure.Services
             if (domain == null)
                 return ApiResponse<bool>.Fail("Domain not found");
 
+            // ✅ الفيكس - التحقق من Status
             if (domain.Status != DomainStatus.Active)
                 return ApiResponse<bool>.Fail("Domain must be verified before enabling SSL");
+
+            if (domain.SSLEnabled)
+                return ApiResponse<bool>.Fail("SSL is already enabled");
 
             domain.SSLEnabled = true;
             domain.SSLExpiryDate = DateTime.UtcNow.AddYears(1);

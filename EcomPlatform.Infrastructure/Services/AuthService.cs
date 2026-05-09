@@ -1,7 +1,4 @@
-﻿// ================================================================
-// EcomPlatform.Infrastructure/Services/AuthService.cs — FULL REWRITE
-// ================================================================
-using EcomPlatform.Application.Common;
+﻿using EcomPlatform.Application.Common;
 using EcomPlatform.Application.DTOs.Auth;
 using EcomPlatform.Application.Services.Interfaces;
 using EcomPlatform.Core.Entities;
@@ -21,21 +18,21 @@ namespace EcomPlatform.Infrastructure.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly JwtSettings _jwtSettings;
         private readonly IEmailService _emailService;
+        private readonly IAuditLogService _auditLogService;
 
-        // كل user مش هيعنده أكتر من كده sessions في نفس الوقت
         private const int MaxActiveSessionsPerUser = 5;
 
         public AuthService(
             IUnitOfWork unitOfWork,
             JwtSettings jwtSettings,
-            IEmailService emailService)
+            IEmailService emailService,
+            IAuditLogService auditLogService)
         {
             _unitOfWork = unitOfWork;
             _jwtSettings = jwtSettings;
             _emailService = emailService;
+            _auditLogService = auditLogService;
         }
-
-        // ── Register ─────────────────────────────────────────────────────
 
         public async Task<ApiResponse<AuthResponseDto>> RegisterAsync(RegisterDto dto)
         {
@@ -43,7 +40,6 @@ namespace EcomPlatform.Infrastructure.Services
             if (existingUsers.Any())
                 return ApiResponse<AuthResponseDto>.Fail("Email already exists");
 
-            // منع أي حد يسجل نفسه كـ SuperAdmin
             var role = dto.Role == UserRole.SuperAdmin ? UserRole.TenantAdmin : dto.Role;
 
             var user = new User
@@ -65,38 +61,68 @@ namespace EcomPlatform.Infrastructure.Services
                 $"{user.FirstName} {user.LastName}".Trim(),
                 "Fatora Platform");
 
-            // Register بدون refresh token — اللي يعمل Login هيجيب token
+            var (plainToken, tokenHash) = GenerateRefreshToken();
+
+            var refreshToken = new RefreshToken
+            {
+                UserId = user.Id,
+                TokenHash = tokenHash,
+                ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryInDays),
+                IpAddress = null,
+                DeviceInfo = null
+            };
+
+            await _unitOfWork.RefreshTokens.AddAsync(refreshToken);
+            await _unitOfWork.SaveChangesAsync();
+
             var accessToken = GenerateAccessToken(user);
+
+            await _auditLogService.LogAsync(
+                entityName: "Auth",
+                entityId: user.Id.ToString(),
+                action: AuditAction.Create,
+                userId: user.Id,
+                tenantId: user.TenantId,
+                newValue: $"User '{user.Email}' registered with role {role}");
 
             return ApiResponse<AuthResponseDto>.Ok(new AuthResponseDto
             {
                 Token = accessToken,
-                RefreshToken = string.Empty,
+                RefreshToken = plainToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryInMinutes),
                 User = MapToUserDto(user)
             }, "Registered successfully");
         }
 
-        // ── Login ────────────────────────────────────────────────────────
-
         public async Task<ApiResponse<AuthResponseDto>> LoginAsync(
-            LoginDto dto,
             string? ipAddress,
-            string? deviceInfo)
+            string? deviceInfo,
+            LoginDto dto)
         {
             var users = await _unitOfWork.Users.FindAsync(u => u.Email == dto.Email);
             var user = users.FirstOrDefault();
 
             if (user == null || !VerifyPassword(dto.Password, user.PasswordHash))
+            {
+                if (user != null)
+                {
+                    await _auditLogService.LogAsync(
+                        entityName: "Auth",
+                        entityId: user.Id.ToString(),
+                        action: AuditAction.FailedLogin,
+                        userId: user.Id,
+                        tenantId: user.TenantId,
+                        newValue: $"Failed login attempt from IP: {ipAddress}");
+                }
+
                 return ApiResponse<AuthResponseDto>.Fail("Invalid email or password");
+            }
 
             if (!user.IsActive)
                 return ApiResponse<AuthResponseDto>.Fail("Account is disabled");
 
-            // تنظيف الـ sessions الزيادة لو وصل للـ max
             await CleanupOldSessionsAsync(user.Id);
 
-            // توليد refresh token جديد
             var (plainToken, tokenHash) = GenerateRefreshToken();
 
             var refreshToken = new RefreshToken
@@ -105,9 +131,7 @@ namespace EcomPlatform.Infrastructure.Services
                 TokenHash = tokenHash,
                 ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryInDays),
                 IpAddress = ipAddress,
-                DeviceInfo = deviceInfo?.Length > 512
-                    ? deviceInfo[..512]
-                    : deviceInfo
+                DeviceInfo = deviceInfo?.Length > 512 ? deviceInfo[..512] : deviceInfo
             };
 
             await _unitOfWork.RefreshTokens.AddAsync(refreshToken);
@@ -118,16 +142,22 @@ namespace EcomPlatform.Infrastructure.Services
 
             var accessToken = GenerateAccessToken(user);
 
+            await _auditLogService.LogAsync(
+                entityName: "Auth",
+                entityId: user.Id.ToString(),
+                action: AuditAction.Login,
+                userId: user.Id,
+                tenantId: user.TenantId,
+                newValue: $"Login successful from IP: {ipAddress} | Device: {deviceInfo?[..Math.Min(50, deviceInfo?.Length ?? 0)]}");
+
             return ApiResponse<AuthResponseDto>.Ok(new AuthResponseDto
             {
                 Token = accessToken,
-                RefreshToken = plainToken,  // plain token بس للـ client، الـ hash في الـ DB
+                RefreshToken = plainToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryInMinutes),
                 User = MapToUserDto(user)
             }, "Login successful");
         }
-
-        // ── Refresh Token ─────────────────────────────────────────────────
 
         public async Task<ApiResponse<AuthResponseDto>> RefreshTokenAsync(
             string plainRefreshToken,
@@ -135,58 +165,52 @@ namespace EcomPlatform.Infrastructure.Services
             string? deviceInfo)
         {
             var tokenHash = HashToken(plainRefreshToken);
-
-            var tokens = await _unitOfWork.RefreshTokens
-                .FindAsync(t => t.TokenHash == tokenHash);
-
+            var tokens = await _unitOfWork.RefreshTokens.FindAsync(t => t.TokenHash == tokenHash);
             var existingToken = tokens.FirstOrDefault();
 
-            // Token مش موجود
             if (existingToken == null)
                 return ApiResponse<AuthResponseDto>.Fail("Invalid refresh token");
 
-            // ── Reuse Detection ───────────────────────────────────────────
-            // لو الـ token اتعمله revoke قبل كده ومحدش من المفروض يبعته تاني
-            // ده بيدل على سرقة محتملة — نلغي كل sessions اليوزر ده
+            // ── جيب الـ user أولاً عشان نستخدم الـ tenantId في كل الحالات ──
+            var users = await _unitOfWork.Users.FindAsync(u => u.Id == existingToken.UserId);
+            var user = users.FirstOrDefault();
+
             if (existingToken.IsRevoked)
             {
-                await RevokeAllTokensAsync(existingToken.UserId);
+                await RevokeAllTokensExceptAsync(existingToken.UserId, existingToken.Id);
+
+                await _auditLogService.LogAsync(
+                    entityName: "Auth",
+                    entityId: existingToken.UserId.ToString(),
+                    action: AuditAction.SecurityAlert,
+                    userId: existingToken.UserId,
+                    tenantId: user?.TenantId,  // ← tenantId من الـ user
+                    newValue: $"Token reuse detected from IP: {ipAddress}. All sessions revoked.");
+
                 return ApiResponse<AuthResponseDto>.Fail(
                     "Security alert: token reuse detected. All sessions have been revoked.");
             }
 
-            // Token انتهت صلاحيته
             if (existingToken.IsExpired)
                 return ApiResponse<AuthResponseDto>.Fail("Refresh token has expired");
-
-            // جلب الـ user
-            var users = await _unitOfWork.Users
-                .FindAsync(u => u.Id == existingToken.UserId);
-            var user = users.FirstOrDefault();
 
             if (user == null || !user.IsActive)
                 return ApiResponse<AuthResponseDto>.Fail("User not found or disabled");
 
-            // ── Token Rotation ────────────────────────────────────────────
-            // الـ token القديم بيتشال (revoke) ويتولد token جديد
             var (newPlainToken, newTokenHash) = GenerateRefreshToken();
 
-            // نحفظ اللي استبدله للـ audit trail
             existingToken.IsRevoked = true;
             existingToken.RevokedAt = DateTime.UtcNow;
             existingToken.ReplacedByTokenHash = newTokenHash;
             await _unitOfWork.RefreshTokens.UpdateAsync(existingToken);
 
-            // نضيف الـ token الجديد
             var newRefreshToken = new RefreshToken
             {
                 UserId = user.Id,
                 TokenHash = newTokenHash,
                 ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryInDays),
                 IpAddress = ipAddress,
-                DeviceInfo = deviceInfo?.Length > 512
-                    ? deviceInfo[..512]
-                    : deviceInfo
+                DeviceInfo = deviceInfo?.Length > 512 ? deviceInfo[..512] : deviceInfo
             };
 
             await _unitOfWork.RefreshTokens.AddAsync(newRefreshToken);
@@ -203,8 +227,6 @@ namespace EcomPlatform.Infrastructure.Services
             }, "Token refreshed");
         }
 
-        // ── Revoke Single Token (Logout من device واحد) ───────────────────
-
         public async Task<ApiResponse<bool>> RevokeTokenAsync(
             string plainRefreshToken,
             Guid userId)
@@ -213,7 +235,6 @@ namespace EcomPlatform.Infrastructure.Services
 
             var tokens = await _unitOfWork.RefreshTokens
                 .FindAsync(t => t.TokenHash == tokenHash && t.UserId == userId);
-
             var token = tokens.FirstOrDefault();
 
             if (token == null || token.IsRevoked)
@@ -225,29 +246,58 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.RefreshTokens.UpdateAsync(token);
             await _unitOfWork.SaveChangesAsync();
 
+            await _auditLogService.LogAsync(
+                entityName: "Auth",
+                entityId: userId.ToString(),
+                action: AuditAction.Logout,
+                userId: userId,
+                tenantId: null,
+                newValue: $"Session revoked for token ID: {token.Id}");
+
             return ApiResponse<bool>.Ok(true, "Logged out successfully");
         }
 
-        // ── Revoke All Tokens (Logout من كل الأجهزة) ─────────────────────
-
         public async Task<ApiResponse<bool>> RevokeAllTokensAsync(Guid userId)
         {
-            var activeTokens = await _unitOfWork.RefreshTokens
-                .FindAsync(t => t.UserId == userId && !t.IsRevoked);
+            await RevokeAllTokensExceptAsync(userId, excludeTokenId: null);
 
-            foreach (var token in activeTokens)
-            {
-                token.IsRevoked = true;
-                token.RevokedAt = DateTime.UtcNow;
-                await _unitOfWork.RefreshTokens.UpdateAsync(token);
-            }
-
-            await _unitOfWork.SaveChangesAsync();
+            await _auditLogService.LogAsync(
+                entityName: "Auth",
+                entityId: userId.ToString(),
+                action: AuditAction.Logout,
+                userId: userId,
+                tenantId: null,
+                newValue: "All sessions revoked");
 
             return ApiResponse<bool>.Ok(true, "All sessions revoked");
         }
 
-        // ── Get Active Sessions ────────────────────────────────────────────
+        public async Task<ApiResponse<bool>> RevokeTokenByIdAsync(Guid tokenId, Guid userId)
+        {
+            var token = await _unitOfWork.RefreshTokens.GetByIdAsync(tokenId);
+
+            if (token == null || token.UserId != userId)
+                return ApiResponse<bool>.Fail("Session not found");
+
+            if (token.IsRevoked)
+                return ApiResponse<bool>.Fail("Session already revoked");
+
+            token.IsRevoked = true;
+            token.RevokedAt = DateTime.UtcNow;
+
+            await _unitOfWork.RefreshTokens.UpdateAsync(token);
+            await _unitOfWork.SaveChangesAsync();
+
+            await _auditLogService.LogAsync(
+                entityName: "Auth",
+                entityId: userId.ToString(),
+                action: AuditAction.Logout,
+                userId: userId,
+                tenantId: null,
+                newValue: $"Session {tokenId} revoked manually");
+
+            return ApiResponse<bool>.Ok(true, "Session revoked successfully");
+        }
 
         public async Task<ApiResponse<List<ActiveSessionDto>>> GetActiveSessionsAsync(Guid userId)
         {
@@ -266,7 +316,7 @@ namespace EcomPlatform.Infrastructure.Services
                     IpAddress = t.IpAddress,
                     CreatedAt = t.CreatedAt,
                     ExpiresAt = t.ExpiresAt,
-                    IsCurrentSession = false  // بيتحدد في الـ controller
+                    IsCurrentSession = false
                 })
                 .ToList();
 
@@ -275,21 +325,37 @@ namespace EcomPlatform.Infrastructure.Services
 
         // ── Private Helpers ───────────────────────────────────────────────
 
+        private async Task RevokeAllTokensExceptAsync(Guid userId, Guid? excludeTokenId)
+        {
+            var activeTokens = await _unitOfWork.RefreshTokens
+                .FindAsync(t => t.UserId == userId && !t.IsRevoked);
+
+            foreach (var token in activeTokens)
+            {
+                if (excludeTokenId.HasValue && token.Id == excludeTokenId.Value)
+                    continue;
+
+                token.IsRevoked = true;
+                token.RevokedAt = DateTime.UtcNow;
+                await _unitOfWork.RefreshTokens.UpdateAsync(token);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+        }
+
         private string GenerateAccessToken(User user)
         {
             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Sub,   user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("role", user.Role.ToString()),
+                new Claim(JwtRegisteredClaimNames.Jti,   Guid.NewGuid().ToString()),
+                new Claim("role",     user.Role.ToString()),
                 new Claim("tenantId", user.TenantId?.ToString() ?? ""),
-                new Claim("userId", user.Id.ToString()),
+                new Claim("userId",   user.Id.ToString()),
             };
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
-
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
@@ -297,17 +363,11 @@ namespace EcomPlatform.Infrastructure.Services
                 audience: _jwtSettings.Audience,
                 claims: claims,
                 expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryInMinutes),
-                signingCredentials: creds
-            );
+                signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        /// <summary>
-        /// توليد refresh token:
-        /// - plain: يتبعت للـ client
-        /// - hash: بيتخزن في الـ DB
-        /// </summary>
         private static (string plain, string hash) GenerateRefreshToken()
         {
             var randomBytes = new byte[64];
@@ -318,9 +378,6 @@ namespace EcomPlatform.Infrastructure.Services
             return (plain, hash);
         }
 
-        /// <summary>
-        /// SHA-256 hash للـ token — بيتخزن في الـ DB بدل الـ plain text
-        /// </summary>
         private static string HashToken(string token)
         {
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
@@ -333,9 +390,6 @@ namespace EcomPlatform.Infrastructure.Services
         private static bool VerifyPassword(string password, string hash) =>
             BCrypt.Net.BCrypt.Verify(password, hash);
 
-        /// <summary>
-        /// لو الـ user وصل للـ max sessions، نشيل الأقدم
-        /// </summary>
         private async Task CleanupOldSessionsAsync(Guid userId)
         {
             var activeTokens = await _unitOfWork.RefreshTokens
@@ -344,15 +398,11 @@ namespace EcomPlatform.Infrastructure.Services
                     !t.IsRevoked &&
                     t.ExpiresAt > DateTime.UtcNow);
 
-            var sortedTokens = activeTokens
-                .OrderBy(t => t.CreatedAt)
-                .ToList();
+            var sortedTokens = activeTokens.OrderBy(t => t.CreatedAt).ToList();
 
             if (sortedTokens.Count >= MaxActiveSessionsPerUser)
             {
-                // نشيل الأقدم sessions علشان نعمل مكان
-                var toRevoke = sortedTokens
-                    .Take(sortedTokens.Count - MaxActiveSessionsPerUser + 1);
+                var toRevoke = sortedTokens.Take(sortedTokens.Count - MaxActiveSessionsPerUser + 1);
 
                 foreach (var token in toRevoke)
                 {

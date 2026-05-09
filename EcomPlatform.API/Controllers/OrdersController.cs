@@ -26,7 +26,7 @@ namespace EcomPlatform.API.Controllers
 
         // ─── Helper: قراءة userId من الـ JWT بأمان ──────────────────────────
         private Guid GetUserId() =>
-            Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
+            Guid.TryParse(User.FindFirstValue("userId"), out var id)
                 ? id
                 : throw new UnauthorizedAccessException();
 
@@ -34,7 +34,6 @@ namespace EcomPlatform.API.Controllers
             HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
         // ─── GET /api/orders/tenant/{tenantId} ───────────────────────────────
-        // Staff وفوق — يشوف orders الـ tenant
         [HttpGet("tenant/{tenantId}")]
         [Authorize(Policy = Policies.TenantStaffOrAbove)]
         public async Task<IActionResult> GetAllByTenant(Guid tenantId, [FromQuery] PaginationParams pagination)
@@ -44,7 +43,6 @@ namespace EcomPlatform.API.Controllers
         }
 
         // ─── GET /api/orders/{id} ────────────────────────────────────────────
-        // Staff وفوق — يشوف order معين
         [HttpGet("{id}")]
         [Authorize(Policy = Policies.TenantStaffOrAbove)]
         public async Task<IActionResult> GetById(Guid id)
@@ -56,7 +54,6 @@ namespace EcomPlatform.API.Controllers
         }
 
         // ─── POST /api/orders ────────────────────────────────────────────────
-        // Staff وفوق — إنشاء order جديد
         [HttpPost]
         [Authorize(Policy = Policies.TenantStaffOrAbove)]
         public async Task<IActionResult> Create([FromBody] CreateOrderDto dto)
@@ -78,7 +75,6 @@ namespace EcomPlatform.API.Controllers
         }
 
         // ─── PATCH /api/orders/{id}/status ──────────────────────────────────
-        // Staff وفوق — تغيير حالة الـ order
         [HttpPatch("{id}/status")]
         [Authorize(Policy = Policies.TenantStaffOrAbove)]
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] OrderStatus status)
@@ -107,7 +103,6 @@ namespace EcomPlatform.API.Controllers
         }
 
         // ─── PATCH /api/orders/{id}/payment-status ───────────────────────────
-        // TenantAdmin وفوق — تغيير حالة الدفع (عملية حساسة)
         [HttpPatch("{id}/payment-status")]
         [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> UpdatePaymentStatus(Guid id, [FromBody] PaymentStatus status)
@@ -136,7 +131,6 @@ namespace EcomPlatform.API.Controllers
         }
 
         // ─── PATCH /api/orders/{id}/cancel ───────────────────────────────────
-        // TenantAdmin وفوق — إلغاء order (عملية حساسة)
         [HttpPatch("{id}/cancel")]
         [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> Cancel(Guid id)

@@ -18,5 +18,6 @@
         public string MetaDescription { get; set; } = string.Empty;
         public decimal Weight { get; set; }
         public Guid CategoryId { get; set; }
+        public Guid UpdatedById { get; set; }  // ← جديد
     }
 }

@@ -9,6 +9,8 @@
         Logout = 5,
         StatusChange = 6,
         PasswordChange = 7,
-        RoleChange = 8
+        RoleChange = 8,
+        FailedLogin = 9,   // ← جديد
+        SecurityAlert = 10   // ← جديد
     }
 }

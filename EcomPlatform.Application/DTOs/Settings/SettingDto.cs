@@ -13,12 +13,14 @@
     public class UpdateSettingDto
     {
         public string Value { get; set; } = string.Empty;
+        public Guid UpdatedById { get; set; }  // ← جديد
     }
 
     public class BulkUpdateSettingDto
     {
         public Dictionary<string, string> Settings { get; set; } = new();
         public Guid? TenantId { get; set; }
+        public Guid UpdatedById { get; set; }  // ← جديد
     }
 
     public class SettingResponseDto
