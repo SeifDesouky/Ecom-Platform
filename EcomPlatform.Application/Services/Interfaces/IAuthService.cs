@@ -12,5 +12,9 @@ namespace EcomPlatform.Application.Services.Interfaces
         Task<ApiResponse<bool>> RevokeAllTokensAsync(Guid userId);
         Task<ApiResponse<bool>> RevokeTokenByIdAsync(Guid tokenId, Guid userId);
         Task<ApiResponse<List<ActiveSessionDto>>> GetActiveSessionsAsync(Guid userId);
+        Task<ApiResponse<bool>> ForgotPasswordAsync(ForgotPasswordDto dto);
+        Task<ApiResponse<bool>> ResetPasswordAsync(ResetPasswordDto dto);
+        Task<ApiResponse<bool>> VerifyEmailAsync(VerifyEmailDto dto);
+
     }
 }

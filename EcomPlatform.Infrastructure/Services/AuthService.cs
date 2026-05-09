@@ -323,6 +323,112 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<List<ActiveSessionDto>>.Ok(sessions);
         }
 
+        public async Task<ApiResponse<bool>> ForgotPasswordAsync(ForgotPasswordDto dto)
+        {
+            var users = await _unitOfWork.Users.FindAsync(u => u.Email == dto.Email);
+            var user = users.FirstOrDefault();
+
+            // مش بنقول للـ user لو الـ email مش موجود — security best practice
+            if (user == null)
+                return ApiResponse<bool>.Ok(true, "If this email exists, a reset link has been sent");
+
+            // إلغاء أي tokens قديمة
+            var oldTokens = await _unitOfWork.PasswordResetTokens
+                .FindAsync(t => t.UserId == user.Id && !t.IsUsed);
+
+            foreach (var old in oldTokens)
+            {
+                old.IsUsed = true;
+                await _unitOfWork.PasswordResetTokens.UpdateAsync(old);
+            }
+
+            // إنشاء token جديد
+            var plainToken = Guid.NewGuid().ToString("N");
+
+            var resetToken = new PasswordResetToken
+            {
+                UserId = user.Id,
+                Token = plainToken,
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                IsUsed = false
+            };
+
+            await _unitOfWork.PasswordResetTokens.AddAsync(resetToken);
+            await _unitOfWork.SaveChangesAsync();
+
+            // إرسال الـ email
+            var resetLink = $"https://yourapp.com/reset-password?token={plainToken}";
+            _ = _emailService.SendPasswordResetAsync(
+                user.Email,
+                $"{user.FirstName} {user.LastName}".Trim(),
+                resetLink);
+
+            return ApiResponse<bool>.Ok(true, "If this email exists, a reset link has been sent");
+        }
+
+        public async Task<ApiResponse<bool>> ResetPasswordAsync(ResetPasswordDto dto)
+        {
+            var tokens = await _unitOfWork.PasswordResetTokens
+                .FindAsync(t => t.Token == dto.Token && !t.IsUsed);
+
+            var resetToken = tokens.FirstOrDefault();
+
+            if (resetToken == null)
+                return ApiResponse<bool>.Fail("Invalid or expired token");
+
+            if (resetToken.ExpiresAt < DateTime.UtcNow)
+                return ApiResponse<bool>.Fail("Token has expired");
+
+            var user = await _unitOfWork.Users.GetByIdAsync(resetToken.UserId);
+
+            if (user == null || !user.IsActive)
+                return ApiResponse<bool>.Fail("User not found or disabled");
+
+            // تحديث الـ password
+            user.PasswordHash = HashPassword(dto.NewPassword);
+            await _unitOfWork.Users.UpdateAsync(user);
+
+            // إلغاء الـ token
+            resetToken.IsUsed = true;
+            await _unitOfWork.PasswordResetTokens.UpdateAsync(resetToken);
+
+            // إلغاء كل الـ sessions الحالية
+            await RevokeAllTokensAsync(user.Id);
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return ApiResponse<bool>.Ok(true, "Password reset successfully");
+        }
+
+        public async Task<ApiResponse<bool>> VerifyEmailAsync(VerifyEmailDto dto)
+        {
+            var tokens = await _unitOfWork.PasswordResetTokens
+                .FindAsync(t => t.Token == dto.Token && !t.IsUsed);
+
+            var verifyToken = tokens.FirstOrDefault();
+
+            if (verifyToken == null)
+                return ApiResponse<bool>.Fail("Invalid or expired token");
+
+            if (verifyToken.ExpiresAt < DateTime.UtcNow)
+                return ApiResponse<bool>.Fail("Token has expired");
+
+            var user = await _unitOfWork.Users.GetByIdAsync(verifyToken.UserId);
+
+            if (user == null)
+                return ApiResponse<bool>.Fail("User not found");
+
+            user.IsEmailVerified = true;
+            await _unitOfWork.Users.UpdateAsync(user);
+
+            verifyToken.IsUsed = true;
+            await _unitOfWork.PasswordResetTokens.UpdateAsync(verifyToken);
+
+            await _unitOfWork.SaveChangesAsync();
+
+            return ApiResponse<bool>.Ok(true, "Email verified successfully");
+        }
+
         // ── Private Helpers ───────────────────────────────────────────────
 
         private async Task RevokeAllTokensExceptAsync(Guid userId, Guid? excludeTokenId)

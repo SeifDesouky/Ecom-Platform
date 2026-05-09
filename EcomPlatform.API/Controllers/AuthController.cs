@@ -89,7 +89,26 @@ namespace EcomPlatform.API.Controllers
             var result = await _authService.RevokeTokenByIdAsync(tokenId, userId.Value);
             return result.Success ? Ok(result) : BadRequest(result);
         }
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            var result = await _authService.ForgotPasswordAsync(dto);
+            return Ok(result);
+        }
 
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            var result = await _authService.ResetPasswordAsync(dto);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        [HttpPost("verify-email")]
+        public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailDto dto)
+        {
+            var result = await _authService.VerifyEmailAsync(dto);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
         // ── Helpers ───────────────────────────────────────────────────────
 
         private Guid? GetCurrentUserId()

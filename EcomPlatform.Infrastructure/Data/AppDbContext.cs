@@ -43,6 +43,7 @@ namespace EcomPlatform.Infrastructure.Data
         public DbSet<Article> Articles => Set<Article>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<DashboardSnapshot> DashboardSnapshots => Set<DashboardSnapshot>();
+        public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -185,6 +186,9 @@ namespace EcomPlatform.Infrastructure.Data
 
             // ← الجديد: RefreshToken مش بيحتاج tenant filter — هو user-scoped
             modelBuilder.Entity<RefreshToken>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<PasswordResetToken>()
                 .HasQueryFilter(x => !x.IsDeleted);
         }
 

@@ -31,6 +31,7 @@ namespace EcomPlatform.Core.Interfaces
         IRepository<Article> Articles { get; }
         IRepository<AuditLog> AuditLogs { get; }
         IRepository<DashboardSnapshot> DashboardSnapshots { get; }
+        IRepository<PasswordResetToken> PasswordResetTokens { get; }
 
         Task<int> SaveChangesAsync();
     }

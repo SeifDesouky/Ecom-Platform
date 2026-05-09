@@ -35,6 +35,7 @@ namespace EcomPlatform.Infrastructure.Repositories
         public IRepository<Article> Articles { get; }
         public IRepository<AuditLog> AuditLogs { get; }
         public IRepository<DashboardSnapshot> DashboardSnapshots { get; }
+        public IRepository<PasswordResetToken> PasswordResetTokens { get; }
 
         public UnitOfWork(AppDbContext context)
         {
@@ -65,6 +66,8 @@ namespace EcomPlatform.Infrastructure.Repositories
             Articles = new Repository<Article>(context);
             AuditLogs = new Repository<AuditLog>(context);
             DashboardSnapshots = new Repository<DashboardSnapshot>(context);
+            PasswordResetTokens = new Repository<PasswordResetToken>(context);
+
         }
 
         public async Task<int> SaveChangesAsync() =>

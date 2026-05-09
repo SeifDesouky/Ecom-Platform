@@ -49,14 +49,6 @@ namespace EcomPlatform.Infrastructure.Services
                     UnitPrice = item.UnitPrice,
                     TotalPrice = totalPrice
                 });
-
-                if (product.TrackInventory)
-                {
-                    product.Stock -= item.Quantity;
-                    if (product.Stock == 0)
-                        product.Status = ProductStatus.OutOfStock;
-                    await _unitOfWork.Products.UpdateAsync(product);
-                }
             }
 
             var total = subTotal + dto.ShippingCost + dto.Tax - dto.Discount;
@@ -108,7 +100,9 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<OrderResponseDto>.Ok(MapToDto(order));
         }
 
-        public async Task<ApiResponse<PagedResponse<OrderResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination)
+        public async Task<ApiResponse<PagedResponse<OrderResponseDto>>> GetAllByTenantAsync(
+            Guid tenantId,
+            PaginationParams pagination)
         {
             var all = await _unitOfWork.Orders.FindAsync(o => o.TenantId == tenantId);
             var totalCount = all.Count();
@@ -150,7 +144,35 @@ namespace EcomPlatform.Infrastructure.Services
             order.PaymentStatus = status;
 
             if (status == PaymentStatus.Paid)
+            {
                 order.PaidAt = DateTime.UtcNow;
+
+                // خصم الـ stock بعد إتمام الدفع
+                if (order.Items != null)
+                {
+                    var productIds = order.Items.Select(i => i.ProductId).ToHashSet();
+                    var products = await _unitOfWork.Products
+                        .FindAsync(p => productIds.Contains(p.Id));
+                    var productMap = products.ToDictionary(p => p.Id);
+
+                    foreach (var item in order.Items)
+                    {
+                        if (!productMap.TryGetValue(item.ProductId, out var product)) continue;
+                        if (!product.TrackInventory) continue;
+
+                        if (product.Stock < item.Quantity)
+                            return ApiResponse<bool>.Fail(
+                                $"Insufficient stock for {product.Name}");
+
+                        product.Stock -= item.Quantity;
+
+                        if (product.Stock == 0)
+                            product.Status = ProductStatus.OutOfStock;
+
+                        await _unitOfWork.Products.UpdateAsync(product);
+                    }
+                }
+            }
 
             await _unitOfWork.Orders.UpdateAsync(order);
             await _unitOfWork.SaveChangesAsync();
@@ -170,11 +192,12 @@ namespace EcomPlatform.Infrastructure.Services
             if (order.Status == OrderStatus.Cancelled)
                 return ApiResponse<bool>.Fail("Order is already cancelled");
 
-            // Restore stock
-            if (order.Items != null)
+            // Restore stock لو الـ order كان Paid
+            if (order.PaymentStatus == PaymentStatus.Paid && order.Items != null)
             {
                 var productIds = order.Items.Select(i => i.ProductId).ToHashSet();
-                var products = await _unitOfWork.Products.FindAsync(p => productIds.Contains(p.Id));
+                var products = await _unitOfWork.Products
+                    .FindAsync(p => productIds.Contains(p.Id));
                 var productMap = products.ToDictionary(p => p.Id);
 
                 foreach (var item in order.Items)
@@ -183,6 +206,7 @@ namespace EcomPlatform.Infrastructure.Services
                     if (!product.TrackInventory) continue;
 
                     product.Stock += item.Quantity;
+
                     if (product.Status == ProductStatus.OutOfStock && product.Stock > 0)
                         product.Status = ProductStatus.Active;
 
