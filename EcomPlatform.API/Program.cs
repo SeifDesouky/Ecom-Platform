@@ -181,10 +181,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Development", policy =>
         policy.WithOrigins(
+                "http://localhost:4200",     // ← تم إضافة بورت Angular
+                "https://localhost:4200",
                 "http://localhost:3000",
                 "https://localhost:3000")
               .AllowAnyMethod()
-              .AllowAnyHeader());
+              .AllowAnyHeader()
+              .AllowCredentials());
 
     options.AddPolicy("Production", policy =>
         policy.WithOrigins(allowedOrigins)
