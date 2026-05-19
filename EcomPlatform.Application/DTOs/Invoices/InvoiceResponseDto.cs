@@ -22,6 +22,7 @@ namespace EcomPlatform.Application.DTOs.Invoices
         public Guid OrderId { get; set; }
         public string OrderNumber { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public string QrCodeBase64 { get; set; } = string.Empty;
         public List<InvoiceItemResponseDto> Items { get; set; } = new();
     }
 

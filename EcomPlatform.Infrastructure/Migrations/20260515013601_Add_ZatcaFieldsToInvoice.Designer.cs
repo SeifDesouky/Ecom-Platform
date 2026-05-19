@@ -4,6 +4,7 @@ using EcomPlatform.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EcomPlatform.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260515013601_Add_ZatcaFieldsToInvoice")]
+    partial class Add_ZatcaFieldsToInvoice
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1477,13 +1480,6 @@ namespace EcomPlatform.Infrastructure.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("VatNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("VatRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
 
                     b.HasKey("Id");
 

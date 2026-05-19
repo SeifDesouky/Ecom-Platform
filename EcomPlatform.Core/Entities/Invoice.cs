@@ -21,6 +21,9 @@ namespace EcomPlatform.Core.Entities
         public string CustomerPhone { get; set; } = string.Empty;
         public string CustomerAddress { get; set; } = string.Empty;
 
+        public string QrCodeBase64 { get; set; } = string.Empty;
+        public string ZatcaXml { get; set; } = string.Empty;
+
         // Relations
         public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }

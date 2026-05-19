@@ -9,5 +9,8 @@
         public string Logo { get; set; } = string.Empty;
         public string Domain { get; set; } = string.Empty;
         public DateTime? SubscriptionEndDate { get; set; }
+        public string? VatNumber { get; set; }      // ضيف ده
+        public decimal VatRate { get; set; } = 0.15m; // ضيف ده
+
     }
 }

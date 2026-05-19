@@ -19,7 +19,7 @@ namespace EcomPlatform.Infrastructure.Data
 
         public DbSet<Tenant> Tenants => Set<Tenant>();
         public DbSet<User> Users => Set<User>();
-        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();   // ← الجديد
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Product> Products => Set<Product>();
         public DbSet<ProductImage> ProductImages => Set<ProductImage>();
@@ -52,13 +52,15 @@ namespace EcomPlatform.Infrastructure.Data
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
             // ================================================================
-            // Global Query Filters
-            // القاعدة: كل entity بـ TenantId → filter بالـ TenantId + IsDeleted
-            // كل entity بدون TenantId (global) → filter بالـ IsDeleted فقط
-            // مهم: HasQueryFilter يُستدعى مرة واحدة بس لكل entity
+            // Precision Configuration
             // ================================================================
+            modelBuilder.Entity<Tenant>()
+                .Property(x => x.VatRate)
+                .HasPrecision(5, 2);
 
-            // --- Tenant-scoped entities (TenantId + IsDeleted) ---
+            // ================================================================
+            // Global Query Filters
+            // ================================================================
 
             modelBuilder.Entity<Product>()
                 .HasQueryFilter(x =>
@@ -150,7 +152,9 @@ namespace EcomPlatform.Infrastructure.Data
                     (!_tenantProvider.TenantId.HasValue ||
                      x.TenantId == _tenantProvider.TenantId));
 
-            // --- Global entities (IsDeleted فقط، مش مربوطة بـ Tenant) ---
+            // ================================================================
+            // Global entities (IsDeleted only)
+            // ================================================================
 
             modelBuilder.Entity<User>()
                 .HasQueryFilter(x => !x.IsDeleted);
@@ -161,7 +165,9 @@ namespace EcomPlatform.Infrastructure.Data
             modelBuilder.Entity<Tenant>()
                 .HasQueryFilter(x => !x.IsDeleted);
 
-            // --- Child entities بدون TenantId مباشر ---
+            // ================================================================
+            // Child / system entities
+            // ================================================================
 
             modelBuilder.Entity<OrderItem>()
                 .HasQueryFilter(x => !x.IsDeleted);
@@ -184,7 +190,6 @@ namespace EcomPlatform.Infrastructure.Data
             modelBuilder.Entity<DashboardSnapshot>()
                 .HasQueryFilter(x => !x.IsDeleted);
 
-            // ← الجديد: RefreshToken مش بيحتاج tenant filter — هو user-scoped
             modelBuilder.Entity<RefreshToken>()
                 .HasQueryFilter(x => !x.IsDeleted);
 

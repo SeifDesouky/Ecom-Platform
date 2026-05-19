@@ -16,5 +16,7 @@ namespace EcomPlatform.Application.DTOs.Tenants
         public DateTime? SubscriptionEndDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public int UsersCount { get; set; }
+        public string? VatNumber { get; set; }
+        public decimal VatRate { get; set; }
     }
 }

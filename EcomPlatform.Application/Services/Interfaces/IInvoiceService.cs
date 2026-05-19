@@ -12,5 +12,8 @@ namespace EcomPlatform.Application.Services.Interfaces
         Task<ApiResponse<PagedResponse<InvoiceResponseDto>>> GetAllByTenantAsync(Guid tenantId, PaginationParams pagination);
         Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, InvoiceStatus status);
         Task<ApiResponse<bool>> DeleteAsync(Guid id);
+        Task<ApiResponse<InvoiceResponseDto>> GetByCustomerAsync(Guid id, Guid customerId);
+        Task<ApiResponse<PagedResponse<InvoiceResponseDto>>> GetAllByCustomerAsync(Guid customerId, PaginationParams pagination);
+
     }
 }

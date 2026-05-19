@@ -4,6 +4,7 @@ using EcomPlatform.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EcomPlatform.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260515013046_AddZatcaFieldsToInvoice")]
+    partial class AddZatcaFieldsToInvoice
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -553,10 +556,6 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("QrCodeBase64")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -575,8 +574,19 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("ZatcaXml")
-                        .IsRequired()
+                    b.Property<string>("ZatcaQrCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ZatcaReportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ZatcaStatus")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ZatcaUuid")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ZatcaXmlPath")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -1477,13 +1487,6 @@ namespace EcomPlatform.Infrastructure.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("VatNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("VatRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
 
                     b.HasKey("Id");
 

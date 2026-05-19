@@ -14,6 +14,8 @@ namespace EcomPlatform.Core.Entities
         public bool IsActive { get; set; } = true;
         public TenantStatus Status { get; set; } = TenantStatus.Active;
         public DateTime? SubscriptionEndDate { get; set; }
+        public string? VatNumber { get; set; } // ZATCA
+        public decimal VatRate { get; set; } = 0.15m; // default 15%
 
         // Navigation Properties
         public ICollection<User> Users { get; set; } = new List<User>();

@@ -37,6 +37,8 @@ namespace EcomPlatform.Infrastructure.Services
                 Logo = dto.Logo,
                 Domain = dto.Domain,
                 SubscriptionEndDate = dto.SubscriptionEndDate,
+                VatNumber = dto.VatNumber,   // ضيف ده
+                VatRate = dto.VatRate,
                 IsActive = true,
                 Status = TenantStatus.Active
             };
@@ -122,7 +124,9 @@ namespace EcomPlatform.Infrastructure.Services
             Status = tenant.Status,
             SubscriptionEndDate = tenant.SubscriptionEndDate,
             CreatedAt = tenant.CreatedAt,
-            UsersCount = tenant.Users?.Count ?? 0
+            UsersCount = tenant.Users?.Count ?? 0,
+            VatNumber = tenant.VatNumber,   // ضيف ده
+            VatRate = tenant.VatRate        // ضيف ده
         };
     }
 }
