@@ -6,10 +6,32 @@ using EcomPlatform.Application.Services.Interfaces;
 using EcomPlatform.Application.Validators;
 using EcomPlatform.Core.Interfaces;
 using EcomPlatform.Infrastructure.Adapters;
+using EcomPlatform.Infrastructure.Adapters.AliExpress;
+using EcomPlatform.Infrastructure.Adapters.Amazon;
+using EcomPlatform.Infrastructure.Adapters.BigCommerce;
+using EcomPlatform.Infrastructure.Adapters.eBay;
+using EcomPlatform.Infrastructure.Adapters.Etsy;
 using EcomPlatform.Infrastructure.Adapters.ExpandCart;
+using EcomPlatform.Infrastructure.Adapters.ExpandCartEgypt;
+using EcomPlatform.Infrastructure.Adapters.FacebookShop;
+using EcomPlatform.Infrastructure.Adapters.GoogleShopping;
+using EcomPlatform.Infrastructure.Adapters.InstagramShop;
+using EcomPlatform.Infrastructure.Adapters.Jarir;
+using EcomPlatform.Infrastructure.Adapters.Lazada;
+using EcomPlatform.Infrastructure.Adapters.Magento;
+using EcomPlatform.Infrastructure.Adapters.Meta;
+using EcomPlatform.Infrastructure.Adapters.Noon;
+using EcomPlatform.Infrastructure.Adapters.NoonExpress;
 using EcomPlatform.Infrastructure.Adapters.NotSupported;
 using EcomPlatform.Infrastructure.Adapters.Salla;
+using EcomPlatform.Infrastructure.Adapters.Shein;
+using EcomPlatform.Infrastructure.Adapters.Shopee;
 using EcomPlatform.Infrastructure.Adapters.Shopify;
+using EcomPlatform.Infrastructure.Adapters.Squarespace;
+using EcomPlatform.Infrastructure.Adapters.TikTokShop;
+using EcomPlatform.Infrastructure.Adapters.Walmart;
+using EcomPlatform.Infrastructure.Adapters.WhatsAppCatalog;
+using EcomPlatform.Infrastructure.Adapters.WooCommerce;
 using EcomPlatform.Infrastructure.Adapters.YouCan;
 using EcomPlatform.Infrastructure.Adapters.Zid;
 using EcomPlatform.Infrastructure.Data;
@@ -242,7 +264,7 @@ builder.Services.AddScoped<IMarketplaceAdapter, ZidAdapter>();
 // ShopifyAdapter
 builder.Services.AddHttpClient<ShopifyAdapter>();
 builder.Services.AddScoped<IMarketplaceAdapter, ShopifyAdapter>();
-// Yoycan
+// YouCan
 builder.Services.AddHttpClient<YouCanAdapter>();
 builder.Services.AddScoped<IMarketplaceAdapter, YouCanAdapter>();
 // ExpandCartAdapter
@@ -255,16 +277,99 @@ builder.Services.AddScoped<IMarketplaceAdapter, ToggarAdapter>();
 builder.Services.AddScoped<IMarketplaceAdapter, ShopiniAdapter>();
 builder.Services.AddScoped<IMarketplaceAdapter, PaycornStoreAdapter>();
 builder.Services.AddScoped<IMarketplaceAdapter, MakhazinAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, JarirAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, SheinAdapter>();
+// Noon
+builder.Services.AddHttpClient<NoonAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, NoonAdapter>();
+// TikTok Shop
+builder.Services.AddHttpClient<TikTokShopAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, TikTokShopAdapter>();
+// Google Shopping
+builder.Services.AddHttpClient<GoogleShoppingAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, GoogleShoppingAdapter>();
+// Instagram Shop
+builder.Services.AddHttpClient<InstagramShopAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, InstagramShopAdapter>();
+// WhatsApp Catalog
+builder.Services.AddHttpClient<WhatsAppCatalogAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, WhatsAppCatalogAdapter>();
+// Amazon — timeout 60s بسبب SigV4 overhead
+builder.Services.AddHttpClient<AmazonAdapter>(c => c.Timeout = TimeSpan.FromSeconds(60));
+builder.Services.AddScoped<IMarketplaceAdapter, AmazonAdapter>();
+// eBay — 30s
+builder.Services.AddHttpClient<EbayAdapter>(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IMarketplaceAdapter, EbayAdapter>();
+// Walmart — 30s (polling فقط، مفيش webhooks)
+builder.Services.AddHttpClient<WalmartAdapter>(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IMarketplaceAdapter, WalmartAdapter>();
+// Etsy — polling فقط، مفيش webhooks
+builder.Services.AddHttpClient<EtsyAdapter>(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IMarketplaceAdapter, EtsyAdapter>();
+// WooCommerce
+builder.Services.AddHttpClient<WooCommerceAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, WooCommerceAdapter>();
+// Magento — polling فقط، مفيش webhooks
+builder.Services.AddHttpClient<MagentoAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, MagentoAdapter>();
+// BigCommerce
+builder.Services.AddHttpClient<BigCommerceAdapter>(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IMarketplaceAdapter, BigCommerceAdapter>();
+// Squarespace
+builder.Services.AddHttpClient<SquarespaceAdapter>(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IMarketplaceAdapter, SquarespaceAdapter>();
+// Lazada
+builder.Services.AddHttpClient<LazadaAdapter>(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IMarketplaceAdapter, LazadaAdapter>();
+// Shopee
+builder.Services.AddHttpClient<ShopeeAdapter>(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IMarketplaceAdapter, ShopeeAdapter>();
+// Facebook Shop
+builder.Services.AddHttpClient<FacebookShopAdapter>(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IMarketplaceAdapter, FacebookShopAdapter>();
+// AliExpress
+builder.Services.AddHttpClient<AliExpressAdapter>(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IMarketplaceAdapter, AliExpressAdapter>();
+// Noon Express
+builder.Services.AddHttpClient<NoonExpressAdapter>(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<IMarketplaceAdapter, NoonExpressAdapter>();
+// ExpandCart Egypt
+builder.Services.AddHttpClient<ExpandCartEgyptAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, ExpandCartEgyptAdapter>();
+// Noon Express
+builder.Services.AddScoped<NoonExpressWebhookProcessor>();
+// YouCan
+builder.Services.AddScoped<YouCanWebhookProcessor>();
+// ExpandCart
+builder.Services.AddScoped<ExpandCartWebhookProcessor>();
 
 // AdapterFactory: Scoped لأن الـ adapters بتاعتها Scoped
 builder.Services.AddScoped<IAdapterFactory, AdapterFactory>();
 
-// Salla OAuth + Webhooks
+// ── Webhook Processors ────────────────────────────────────────────────────
+// Salla
 builder.Services.AddScoped<SallaOAuthService>();
 builder.Services.AddScoped<SallaWebhookProcessor>();
-
-// Zid Webhooks
+// Zid
 builder.Services.AddScoped<ZidWebhookProcessor>();
+// Shopify
+builder.Services.AddScoped<ShopifyWebhookProcessor>();
+// WooCommerce
+builder.Services.AddScoped<WooCommerceWebhookProcessor>();
+// TikTok Shop
+builder.Services.AddScoped<TikTokShopWebhookProcessor>();
+// Meta (Instagram Shop + Facebook Shop + WhatsApp Catalog) — shared processor
+builder.Services.AddScoped<MetaWebhookProcessor>();
+// Amazon SNS
+builder.Services.AddScoped<AmazonWebhookProcessor>();
+// eBay
+builder.Services.AddScoped<EbayWebhookProcessor>();
+// Noon
+builder.Services.AddScoped<NoonWebhookProcessor>();
+// AliExpress
+builder.Services.AddScoped<AliExpressWebhookProcessor>();
+// Google Shopping
+builder.Services.AddScoped<GoogleShoppingWebhookProcessor>();
 
 // ── Background Jobs ───────────────────────────────────────────────────────
 builder.Services.AddHostedService<BackgroundSyncJob>();
