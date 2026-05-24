@@ -5,6 +5,7 @@
         Active = 1,
         Inactive = 2,
         OutOfStock = 3,
-        Draft = 4
+        Draft = 4,
+        Deleted = 5,
     }
 }

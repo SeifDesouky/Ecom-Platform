@@ -10,6 +10,8 @@ namespace EcomPlatform.Core.Entities
         public string ProductName { get; set; } = string.Empty;
         public string ProductSKU { get; set; } = string.Empty;
         public string ProductImage { get; set; } = string.Empty;
+        public string ExternalId { get; set; } = string.Empty;
+        public string ExternalProductId { get; set; } = string.Empty;
 
         // Relations
         public Guid OrderId { get; set; }

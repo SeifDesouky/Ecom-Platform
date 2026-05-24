@@ -45,6 +45,11 @@ namespace EcomPlatform.Infrastructure.Data
         public DbSet<DashboardSnapshot> DashboardSnapshots => Set<DashboardSnapshot>();
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
+        // ── Marketplace Integrations ──────────────────────────────────────────
+        public DbSet<StoreIntegration> StoreIntegrations => Set<StoreIntegration>();
+        public DbSet<SyncLog> SyncLogs => Set<SyncLog>();
+        public DbSet<WebhookEvent> WebhookEvents => Set<WebhookEvent>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -147,6 +152,25 @@ namespace EcomPlatform.Infrastructure.Data
                      x.TenantId == _tenantProvider.TenantId));
 
             modelBuilder.Entity<AuditLog>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            // ── Marketplace Integrations ──────────────────────────────────────
+            modelBuilder.Entity<StoreIntegration>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<SyncLog>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<WebhookEvent>()
                 .HasQueryFilter(x =>
                     !x.IsDeleted &&
                     (!_tenantProvider.TenantId.HasValue ||

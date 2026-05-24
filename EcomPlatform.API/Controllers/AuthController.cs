@@ -1,4 +1,8 @@
-﻿using Asp.Versioning;
+﻿// ================================================================
+// EcomPlatform.API/Controllers/AuthController.cs  — UPDATED
+// التغيير: إضافة endpoints للـ Google و Apple Login
+// ================================================================
+using Asp.Versioning;
 using EcomPlatform.Application.DTOs.Auth;
 using EcomPlatform.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -34,6 +38,32 @@ namespace EcomPlatform.API.Controllers
             var ip = GetClientIp();
             var device = Request.Headers.UserAgent.ToString();
             var result = await _authService.LoginAsync(ip, device, dto);
+            return result.Success ? Ok(result) : Unauthorized(result);
+        }
+
+        // ✅ جديد: Google Login
+        // POST /api/v1/auth/login/google
+        // Body: { "idToken": "eyJhbGci..." }
+        [HttpPost("login/google")]
+        [EnableRateLimiting("login")]
+        public async Task<IActionResult> LoginWithGoogle([FromBody] GoogleLoginDto dto)
+        {
+            var ip = GetClientIp();
+            var device = Request.Headers.UserAgent.ToString();
+            var result = await _authService.LoginWithGoogleAsync(ip, device, dto);
+            return result.Success ? Ok(result) : Unauthorized(result);
+        }
+
+        // ✅ جديد: Apple Login
+        // POST /api/v1/auth/login/apple
+        // Body: { "idToken": "eyJhbGci...", "firstName": "Ahmed", "lastName": "Ali" }
+        [HttpPost("login/apple")]
+        [EnableRateLimiting("login")]
+        public async Task<IActionResult> LoginWithApple([FromBody] AppleLoginDto dto)
+        {
+            var ip = GetClientIp();
+            var device = Request.Headers.UserAgent.ToString();
+            var result = await _authService.LoginWithAppleAsync(ip, device, dto);
             return result.Success ? Ok(result) : Unauthorized(result);
         }
 
@@ -89,6 +119,7 @@ namespace EcomPlatform.API.Controllers
             var result = await _authService.RevokeTokenByIdAsync(tokenId, userId.Value);
             return result.Success ? Ok(result) : BadRequest(result);
         }
+
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
@@ -109,6 +140,7 @@ namespace EcomPlatform.API.Controllers
             var result = await _authService.VerifyEmailAsync(dto);
             return result.Success ? Ok(result) : BadRequest(result);
         }
+
         // ── Helpers ───────────────────────────────────────────────────────
 
         private Guid? GetCurrentUserId()

@@ -1,60 +1,60 @@
-using EcomPlatform.Infrastructure.Data;
-using EcomPlatform.Infrastructure.Repositories;
-using EcomPlatform.Core.Interfaces;
-using EcomPlatform.Shared.Settings;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using EcomPlatform.Application.Services.Interfaces;
-using EcomPlatform.Infrastructure.Services;
-using EcomPlatform.Application.Common.Interfaces;
-using EcomPlatform.API.Middlewares;
+using Asp.Versioning;
 using EcomPlatform.API.Extensions;
+using EcomPlatform.API.Middlewares;
+using EcomPlatform.Application.Common.Interfaces;
+using EcomPlatform.Application.Services.Interfaces;
+using EcomPlatform.Application.Validators;
+using EcomPlatform.Core.Interfaces;
+using EcomPlatform.Infrastructure.Adapters;
+using EcomPlatform.Infrastructure.Adapters.ExpandCart;
+using EcomPlatform.Infrastructure.Adapters.NotSupported;
+using EcomPlatform.Infrastructure.Adapters.Salla;
+using EcomPlatform.Infrastructure.Adapters.Shopify;
+using EcomPlatform.Infrastructure.Adapters.YouCan;
+using EcomPlatform.Infrastructure.Adapters.Zid;
+using EcomPlatform.Infrastructure.Data;
+using EcomPlatform.Infrastructure.Data.Interceptors;
+using EcomPlatform.Infrastructure.Jobs;
+using EcomPlatform.Infrastructure.Repositories;
+using EcomPlatform.Infrastructure.Services;
+using EcomPlatform.Shared.Settings;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using EcomPlatform.Application.Validators;
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using NSwag;
+using System.Text;
 using System.Text.Json;
-using Asp.Versioning;
-using EcomPlatform.Infrastructure.Data.Interceptors;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ============================
-// Controllers
-// ============================
 builder.Services.AddControllers();
 
-// ============================
-// API Versioning
-// ============================
-builder.Services.AddApiVersioning(options =>
-{
-    options.DefaultApiVersion = new ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
-    options.ReportApiVersions = true;
-    options.ApiVersionReader = new UrlSegmentApiVersionReader();
-})
-.AddApiExplorer(options =>
-{
-    options.GroupNameFormat = "'v'VVV";
-    options.SubstituteApiVersionInUrl = true;
-});
+builder.Services
+    .AddApiVersioning(options =>
+    {
+        options.DefaultApiVersion = new ApiVersion(1, 0);
+        options.AssumeDefaultVersionWhenUnspecified = true;
+        options.ReportApiVersions = true;
+        options.ApiVersionReader = new UrlSegmentApiVersionReader();
+    })
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'VVV";
+        options.SubstituteApiVersionInUrl = true;
+    });
 
-// ============================
-// FluentValidation
-// ============================
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<LoginValidator>();
 
-// ============================
-// Rate Limiting
-// ============================
 builder.Services.AddRateLimiter(options =>
 {
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
     options.AddFixedWindowLimiter("login", config =>
     {
         config.PermitLimit = 5;
@@ -70,109 +70,103 @@ builder.Services.AddRateLimiter(options =>
         config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         config.QueueLimit = 0;
     });
-
-    options.RejectionStatusCode = 429;
 });
 
-// ============================
-// NSwag
-// ============================
-builder.Services.AddOpenApiDocument(c =>
+builder.Services.AddOpenApiDocument(config =>
 {
-    c.Title = "EcomPlatform API";
-    c.Version = "v1";
+    config.Title = "EcomPlatform API";
+    config.Version = "v1";
 
-    c.AddSecurity("Bearer", new NSwag.OpenApiSecurityScheme
-    {
-        Type = NSwag.OpenApiSecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        Description = "Enter your JWT token"
-    });
+    config.AddSecurity("Bearer", Enumerable.Empty<string>(),
+        new OpenApiSecurityScheme
+        {
+            Type = OpenApiSecuritySchemeType.Http,
+            Scheme = JwtBearerDefaults.AuthenticationScheme,
+            BearerFormat = "JWT",
+            Description = "Enter JWT Token"
+        });
 
-    c.OperationProcessors.Add(
+    config.OperationProcessors.Add(
         new NSwag.Generation.Processors.Security
             .AspNetCoreOperationSecurityScopeProcessor("Bearer"));
 });
 
-// ============================
-// Tenant Provider
-// ============================
 builder.Services.AddScoped<ITenantProvider, CurrentTenantProvider>();
-
-// ============================
-// Tenant Enforcement Interceptor
-// ============================
 builder.Services.AddScoped<TenantEnforcementInterceptor>();
 
-// ============================
-// Database
-// ============================
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 {
     var interceptor = serviceProvider
         .GetRequiredService<TenantEnforcementInterceptor>();
 
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"))
+    options
+        .UseMySQL(connectionString!)
         .AddInterceptors(interceptor);
 });
 
-// ============================
-// JWT Settings
-// ============================
 var jwtSettings = builder.Configuration
     .GetSection("JwtSettings")
-    .Get<JwtSettings>()!;
+    .Get<JwtSettings>()
+    ?? throw new Exception("JwtSettings not found");
 
 builder.Services.AddSingleton(jwtSettings);
 
-// ============================
-// Email Settings
-// ============================
 builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-// ============================
-// JWT Authentication
-// ============================
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.Configure<CloudinarySettings>(
+    builder.Configuration.GetSection("CloudinarySettings"));
+
+builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
+
+builder.Services.Configure<GoogleAuthSettings>(
+    builder.Configuration.GetSection("GoogleAuth"));
+
+builder.Services.Configure<AppleAuthSettings>(
+    builder.Configuration.GetSection("AppleAuth"));
+
+// ── Sync + Webhook Settings ───────────────────────────────────────────────
+builder.Services.Configure<SyncSettings>(
+    builder.Configuration.GetSection("SyncSettings"));
+
+builder.Services.Configure<WebhookSettings>(
+    builder.Configuration.GetSection("WebhookSettings"));
+
+builder.Services
+    .AddAuthentication(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
+        options.DefaultAuthenticateScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.MapInboundClaims = false;
 
-        ValidIssuer = jwtSettings.Issuer,
-        ValidAudience = jwtSettings.Audience,
+        options.TokenValidationParameters =
+            new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtSettings.Issuer,
+                ValidAudience = jwtSettings.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+                RoleClaimType = "role",
+                NameClaimType = "userId"
+            };
+    });
 
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
-
-        RoleClaimType = "role",
-        NameClaimType = "userId"
-    };
-
-    options.MapInboundClaims = false;
-});
-
-// ============================
-// RBAC Authorization
-// ============================
 builder.Services.AddRbacAuthorization();
 
-// ============================
-// CORS
-// ============================
 var allowedOrigins = builder.Configuration
     .GetSection("AllowedOrigins")
     .Get<string[]>() ?? Array.Empty<string>();
@@ -180,41 +174,34 @@ var allowedOrigins = builder.Configuration
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Development", policy =>
-        policy.WithOrigins(
-                "http://localhost:4200",
-                "https://localhost:4200",
+    {
+        policy
+            .WithOrigins(
                 "http://localhost:3000",
-                "https://localhost:3000")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials());
+                "https://localhost:3000",
+                "http://localhost:4200",
+                "https://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
 
     options.AddPolicy("Production", policy =>
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyMethod()
-              .AllowAnyHeader());
+    {
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
 
-// ============================
-// Cloudinary
-// ============================
-builder.Services.Configure<CloudinarySettings>(
-    builder.Configuration.GetSection("CloudinarySettings"));
+builder.Services
+    .AddHealthChecks()
+    .AddCheck("database", () =>
+        Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy());
 
-builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
-
-// ============================
-// Health Checks
-// ============================
-builder.Services.AddHealthChecks()
-    .AddSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")!);
-
-// ============================
-// Dependency Injection
-// ============================
+// ── Core Services ─────────────────────────────────────────────────────────
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -233,24 +220,65 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITenantDomainService, TenantDomainService>();
 builder.Services.AddScoped<ICMSService, CMSService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
-builder.Services.AddHttpClient("ZatcaClient");
 builder.Services.AddScoped<IZatcaService, ZatcaService>();
-
-// ============================
-// Background Services
-// ============================
+builder.Services.AddHttpClient("ZatcaClient");
 builder.Services.AddHostedService<DashboardSnapshotService>();
+
+// ── Integrations ──────────────────────────────────────────────────────────
+builder.Services.AddSingleton<IEncryptionService, AesEncryptionService>();
+builder.Services.AddScoped<IIntegrationService, IntegrationService>();
+
+// ── Marketplace Adapters ──────────────────────────────────────────────────
+builder.Services.AddHttpClient<SallaAuthService>();
+builder.Services.AddScoped<SallaAuthService>();
+
+builder.Services.AddHttpClient<SallaAdapter>();
+builder.Services.AddScoped<ISyncService, SyncService>();
+builder.Services.AddScoped<IMarketplaceAdapter, SallaAdapter>();
+
+// ZidAdapter
+builder.Services.AddHttpClient<ZidAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, ZidAdapter>();
+// ShopifyAdapter
+builder.Services.AddHttpClient<ShopifyAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, ShopifyAdapter>();
+// Yoycan
+builder.Services.AddHttpClient<YouCanAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, YouCanAdapter>();
+// ExpandCartAdapter
+builder.Services.AddHttpClient<ExpandCartAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, ExpandCartAdapter>();
+// Not Supported — مفيش Public API
+builder.Services.AddScoped<IMarketplaceAdapter, MatjarAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, TaggerAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, ToggarAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, ShopiniAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, PaycornStoreAdapter>();
+builder.Services.AddScoped<IMarketplaceAdapter, MakhazinAdapter>();
+
+// AdapterFactory: Scoped لأن الـ adapters بتاعتها Scoped
+builder.Services.AddScoped<IAdapterFactory, AdapterFactory>();
+
+// Salla OAuth + Webhooks
+builder.Services.AddScoped<SallaOAuthService>();
+builder.Services.AddScoped<SallaWebhookProcessor>();
+
+// Zid Webhooks
+builder.Services.AddScoped<ZidWebhookProcessor>();
+
+// ── Background Jobs ───────────────────────────────────────────────────────
+builder.Services.AddHostedService<BackgroundSyncJob>();
 
 var app = builder.Build();
 
-// ============================
-// Middleware Pipeline
-// ============================
+app.UseOpenApi();
+app.UseSwaggerUi(settings =>
+{
+    settings.DocumentTitle = "EcomPlatform API";
+});
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseOpenApi();
-    app.UseSwaggerUi();
-
     app.UseCors("Development");
 }
 else
@@ -258,64 +286,60 @@ else
     app.UseCors("Production");
 }
 
-app.UseHttpsRedirection();
+app.UseRateLimiter();
+app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseAuthentication();
+app.UseMiddleware<TenantMiddleware>();
+app.UseAuthorization();
 
-// ============================
-// Health Checks
-// ============================
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = async (context, report) =>
     {
         context.Response.ContentType = "application/json";
-
-        var result = JsonSerializer.Serialize(new
+        var response = new
         {
             status = report.Status.ToString(),
-
-            checks = report.Entries.Select(e => new
+            checks = report.Entries.Select(entry => new
             {
-                name = e.Key,
-                status = e.Value.Status.ToString(),
-                duration = e.Value.Duration.TotalMilliseconds + "ms"
+                name = entry.Key,
+                status = entry.Value.Status.ToString(),
+                description = entry.Value.Description,
+                duration = $"{entry.Value.Duration.TotalMilliseconds} ms"
             }),
-
-            totalDuration = report.TotalDuration.TotalMilliseconds + "ms"
-        });
-
-        await context.Response.WriteAsync(result);
+            totalDuration = $"{report.TotalDuration.TotalMilliseconds} ms"
+        };
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
     }
 });
 
-// ============================
-// Middleware Order
-// ============================
-app.UseRateLimiter();
-
-app.UseMiddleware<GlobalExceptionMiddleware>();
-
-app.UseAuthentication();
-
-app.UseMiddleware<TenantMiddleware>();
-
-app.UseAuthorization();
-
 app.MapControllers();
 
-// ============================
-// Auto Migrate
-// ============================
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider
+    var dbContext = scope.ServiceProvider
         .GetRequiredService<AppDbContext>();
-
-    await db.Database.MigrateAsync();
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Migration failed: {Message}", ex.Message);
+    }
 }
 
-// ============================
-// Seed Database
-// ============================
-await DbSeeder.SeedAsync(app.Services);
+try
+{
+    await DbSeeder.SeedAsync(app.Services);
+}
+catch (Exception ex)
+{
+    var logger = app.Services
+        .GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Seeding failed: {Message}", ex.Message);
+}
 
-app.Run();
+await app.RunAsync();

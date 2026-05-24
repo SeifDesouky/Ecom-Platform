@@ -23,6 +23,8 @@ namespace EcomPlatform.Core.Entities
         public string MetaTitle { get; set; } = string.Empty;
         public string MetaDescription { get; set; } = string.Empty;
         public decimal Weight { get; set; }
+        public string ExternalId { get; set; } = string.Empty;
+        public Guid? StoreIntegrationId { get; set; }
 
         // Relations
         public Guid? TenantId { get; set; }

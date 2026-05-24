@@ -1,8 +1,5 @@
 ﻿// ================================================================
-// EcomPlatform.Core/Entities/User.cs  — UPDATED
-// ================================================================
-// التغيير: حذف RefreshToken و RefreshTokenExpiry من هنا
-//          دلوقتي بيتخزنوا في جدول RefreshTokens المنفصل
+// EcomPlatform.Core/Entities/User.cs
 // ================================================================
 using EcomPlatform.Core.Entities.Common;
 using EcomPlatform.Core.Enums;
@@ -15,15 +12,18 @@ namespace EcomPlatform.Core.Entities
         public string LastName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
-        public string PasswordHash { get; set; } = string.Empty;
+
+        // ✅ nullable — مش كل يوزر عنده password (Social-only accounts)
+        public string? PasswordHash { get; set; }
+
         public UserRole Role { get; set; } = UserRole.Customer;
         public bool IsActive { get; set; } = true;
         public bool IsEmailVerified { get; set; } = false;
         public DateTime? LastLoginAt { get; set; }
 
-        // ── تم حذف: RefreshToken (string?) ───────────────────────────────
-        // ── تم حذف: RefreshTokenExpiry (DateTime?) ───────────────────────
-        // الـ Refresh Tokens دلوقتي في جدول RefreshTokens المنفصل
+        // ✅ جديد: Social Login IDs
+        public string? GoogleId { get; set; }
+        public string? AppleId { get; set; }
 
         // ── Multi-Tenant ─────────────────────────────────────────────────
         public Guid? TenantId { get; set; }

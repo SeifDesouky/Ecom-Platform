@@ -7,11 +7,11 @@ namespace EcomPlatform.Core.Interfaces
     {
         IRepository<Entities.Tenant> Tenants { get; }
         IRepository<Entities.User> Users { get; }
-        IRepository<RefreshToken> RefreshTokens { get; }   // ← الجديد
+        IRepository<RefreshToken> RefreshTokens { get; }
         IRepository<Category> Categories { get; }
-        IRepository<Product> Products { get; }
+        IProductRepository Products { get; }
         IRepository<ProductImage> ProductImages { get; }
-        IRepository<Order> Orders { get; }
+        IOrderRepository Orders { get; }
         IRepository<OrderItem> OrderItems { get; }
         IRepository<Customer> Customers { get; }
         IRepository<CustomerAddress> CustomerAddresses { get; }
@@ -30,6 +30,9 @@ namespace EcomPlatform.Core.Interfaces
         IRepository<Page> Pages { get; }
         IRepository<Article> Articles { get; }
         IRepository<AuditLog> AuditLogs { get; }
+        IRepository<StoreIntegration> StoreIntegrations { get; }
+        IRepository<SyncLog> SyncLogs { get; }
+        IRepository<WebhookEvent> WebhookEvents { get; }
         IRepository<DashboardSnapshot> DashboardSnapshots { get; }
         IRepository<PasswordResetToken> PasswordResetTokens { get; }
 

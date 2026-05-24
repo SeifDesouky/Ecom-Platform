@@ -13,9 +13,9 @@ namespace EcomPlatform.Infrastructure.Repositories
         public IRepository<User> Users { get; }
         public IRepository<RefreshToken> RefreshTokens { get; }
         public IRepository<Category> Categories { get; }
-        public IRepository<Product> Products { get; }
+        public IProductRepository Products { get; }
         public IRepository<ProductImage> ProductImages { get; }
-        public IRepository<Order> Orders { get; }
+        public IOrderRepository Orders { get; }
         public IRepository<OrderItem> OrderItems { get; }
         public IRepository<Customer> Customers { get; }
         public IRepository<CustomerAddress> CustomerAddresses { get; }
@@ -36,6 +36,9 @@ namespace EcomPlatform.Infrastructure.Repositories
         public IRepository<AuditLog> AuditLogs { get; }
         public IRepository<DashboardSnapshot> DashboardSnapshots { get; }
         public IRepository<PasswordResetToken> PasswordResetTokens { get; }
+        public IRepository<StoreIntegration> StoreIntegrations { get; }
+        public IRepository<SyncLog> SyncLogs { get; }
+        public IRepository<WebhookEvent> WebhookEvents { get; }
 
         public UnitOfWork(AppDbContext context)
         {
@@ -46,7 +49,7 @@ namespace EcomPlatform.Infrastructure.Repositories
             Categories = new Repository<Category>(context);
             Products = new ProductRepository(context);
             ProductImages = new Repository<ProductImage>(context);
-            Orders = new Repository<Order>(context);
+            Orders = new OrderRepository(context);
             OrderItems = new Repository<OrderItem>(context);
             Customers = new Repository<Customer>(context);
             CustomerAddresses = new Repository<CustomerAddress>(context);
@@ -67,6 +70,9 @@ namespace EcomPlatform.Infrastructure.Repositories
             AuditLogs = new Repository<AuditLog>(context);
             DashboardSnapshots = new Repository<DashboardSnapshot>(context);
             PasswordResetTokens = new Repository<PasswordResetToken>(context);
+            StoreIntegrations = new Repository<StoreIntegration>(context);
+            SyncLogs = new Repository<SyncLog>(context);
+            WebhookEvents = new Repository<WebhookEvent>(context);
         }
 
         public async Task<int> SaveChangesAsync() =>

@@ -65,12 +65,37 @@ namespace EcomPlatform.Infrastructure.Repositories
         protected virtual IQueryable<T> ApplyIncludes(IQueryable<T> query) => query;
     }
 
-    public class ProductRepository : Repository<EcomPlatform.Core.Entities.Product>
+    public class ProductRepository : Repository<Core.Entities.Product>, IProductRepository
     {
         public ProductRepository(AppDbContext context) : base(context) { }
 
-        protected override IQueryable<EcomPlatform.Core.Entities.Product> ApplyIncludes(
-            IQueryable<EcomPlatform.Core.Entities.Product> query) =>
+        protected override IQueryable<Core.Entities.Product> ApplyIncludes(
+            IQueryable<Core.Entities.Product> query) =>
             query.Include(p => p.Category).Include(p => p.Images);
+
+        public async Task<Core.Entities.Product?> FindByExternalIdAsync(
+            string externalId,
+            Guid storeIntegrationId) =>
+            await ApplyIncludes(_dbSet)
+                .FirstOrDefaultAsync(p =>
+                    p.ExternalId == externalId &&
+                    p.StoreIntegrationId == storeIntegrationId);
+    }
+
+    public class OrderRepository : Repository<Core.Entities.Order>, IOrderRepository
+    {
+        public OrderRepository(AppDbContext context) : base(context) { }
+
+        protected override IQueryable<Core.Entities.Order> ApplyIncludes(
+            IQueryable<Core.Entities.Order> query) =>
+            query.Include(o => o.Items);
+
+        public async Task<Core.Entities.Order?> FindByExternalIdAsync(
+            string externalId,
+            Guid storeIntegrationId) =>
+            await ApplyIncludes(_dbSet)
+                .FirstOrDefaultAsync(o =>
+                    o.ExternalId == externalId &&
+                    o.StoreIntegrationId == storeIntegrationId);
     }
 }

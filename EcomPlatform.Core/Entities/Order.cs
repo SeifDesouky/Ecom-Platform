@@ -24,6 +24,9 @@ namespace EcomPlatform.Core.Entities
         public DateTime? PaidAt { get; set; }
         public DateTime? ShippedAt { get; set; }
         public DateTime? DeliveredAt { get; set; }
+        public string ExternalId { get; set; } = string.Empty;
+        public string ExternalOrderNumber { get; set; } = string.Empty;
+        public Guid? StoreIntegrationId { get; set; }
 
         // Relations
         public Guid? TenantId { get; set; }
