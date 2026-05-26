@@ -245,6 +245,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IZatcaService, ZatcaService>();
 builder.Services.AddHttpClient("ZatcaClient");
 builder.Services.AddHostedService<DashboardSnapshotService>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 
 // ── Integrations ──────────────────────────────────────────────────────────
 builder.Services.AddSingleton<IEncryptionService, AesEncryptionService>();

@@ -35,6 +35,7 @@ namespace EcomPlatform.Core.Interfaces
         IRepository<WebhookEvent> WebhookEvents { get; }
         IRepository<DashboardSnapshot> DashboardSnapshots { get; }
         IRepository<PasswordResetToken> PasswordResetTokens { get; }
+        IRepository<UserProfile> UserProfiles { get; }
 
         Task<int> SaveChangesAsync();
     }

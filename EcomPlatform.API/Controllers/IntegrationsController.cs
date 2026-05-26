@@ -1,13 +1,16 @@
+using Asp.Versioning;
 using EcomPlatform.Application.DTOs.Integrations;
 using EcomPlatform.Application.Services.Interfaces;
 using EcomPlatform.Core.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
 namespace EcomPlatform.API.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/integrations")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/integrations")]
     public class IntegrationsController : ControllerBase
     {
         private readonly IIntegrationService _integrationService;

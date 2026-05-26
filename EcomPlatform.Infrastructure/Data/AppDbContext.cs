@@ -44,6 +44,7 @@ namespace EcomPlatform.Infrastructure.Data
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<DashboardSnapshot> DashboardSnapshots => Set<DashboardSnapshot>();
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+        public DbSet<UserProfile> UserProfiles => Set<UserProfile>(); // ✅ جديد
 
         // ── Marketplace Integrations ──────────────────────────────────────────
         public DbSet<StoreIntegration> StoreIntegrations => Set<StoreIntegration>();
@@ -219,6 +220,10 @@ namespace EcomPlatform.Infrastructure.Data
 
             modelBuilder.Entity<PasswordResetToken>()
                 .HasQueryFilter(x => !x.IsDeleted);
+
+            // ✅ جديد: UserProfile — مطابق لـ User filter لحل الـ warning
+            modelBuilder.Entity<UserProfile>()
+                .HasQueryFilter(x => !x.IsDeleted && !x.User.IsDeleted);
         }
 
         public override Task<int> SaveChangesAsync(

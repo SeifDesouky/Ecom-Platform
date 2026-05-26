@@ -31,5 +31,6 @@ namespace EcomPlatform.Core.Entities
 
         // ── Navigation ───────────────────────────────────────────────────
         public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+        public UserProfile? Profile { get; set; }
     }
 }

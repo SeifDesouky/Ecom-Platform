@@ -39,6 +39,7 @@ namespace EcomPlatform.Infrastructure.Repositories
         public IRepository<StoreIntegration> StoreIntegrations { get; }
         public IRepository<SyncLog> SyncLogs { get; }
         public IRepository<WebhookEvent> WebhookEvents { get; }
+        public IRepository<UserProfile> UserProfiles { get; }  // ✅ جديد
 
         public UnitOfWork(AppDbContext context)
         {
@@ -73,6 +74,7 @@ namespace EcomPlatform.Infrastructure.Repositories
             StoreIntegrations = new Repository<StoreIntegration>(context);
             SyncLogs = new Repository<SyncLog>(context);
             WebhookEvents = new Repository<WebhookEvent>(context);
+            UserProfiles = new Repository<UserProfile>(context);  // ✅ جديد
         }
 
         public async Task<int> SaveChangesAsync() =>
