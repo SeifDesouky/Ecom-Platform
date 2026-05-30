@@ -12,11 +12,17 @@ namespace EcomPlatform.Infrastructure.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmailService _emailService;
+        private readonly IAccountingService _accountingService;
 
-        public InvoiceService(IUnitOfWork unitOfWork, IEmailService emailService, IConfiguration configuration)
+        public InvoiceService(
+            IUnitOfWork unitOfWork,
+            IEmailService emailService,
+            IConfiguration configuration,
+            IAccountingService accountingService)
         {
             _unitOfWork = unitOfWork;
             _emailService = emailService;
+            _accountingService = accountingService;
         }
 
         public async Task<ApiResponse<InvoiceResponseDto>> GenerateFromOrderAsync(Guid orderId)
@@ -190,6 +196,10 @@ namespace EcomPlatform.Infrastructure.Services
 
             await _unitOfWork.Invoices.UpdateAsync(invoice);
             await _unitOfWork.SaveChangesAsync();
+
+            // ✅ قيد محاسبي تلقائي عند دفع الفاتورة
+            if (status == InvoiceStatus.Paid && invoice.TenantId.HasValue)
+                await _accountingService.CreateInvoicePaidEntryAsync(invoice.Id, invoice.TenantId.Value);
 
             return ApiResponse<bool>.Ok(true, "Invoice status updated successfully");
         }

@@ -40,6 +40,28 @@ namespace EcomPlatform.Infrastructure.Repositories
         public IRepository<SyncLog> SyncLogs { get; }
         public IRepository<WebhookEvent> WebhookEvents { get; }
         public IRepository<UserProfile> UserProfiles { get; }  // ✅ جديد
+        public IRepository<Warehouse> Warehouses { get; }
+        public IRepository<StockMovement> StockMovements { get; }
+        public IRepository<PaymentLink> PaymentLinks { get; }
+        public IRepository<PaymentLinkItem> PaymentLinkItems { get; }
+        public IRepository<PaymentLinkTransaction> PaymentLinkTransactions { get; }
+        public IRepository<ReturnRequest> ReturnRequests { get; }
+        public IRepository<ReturnItem> ReturnItems { get; }
+        public IRepository<PosSession> PosSessions { get; }
+        public IRepository<PosOrder>     PosOrders     { get; }
+        public IRepository<PosOrderItem> PosOrderItems { get; }
+        public IRepository<ProductReview> ProductReviews { get; }
+        public IRepository<LoyaltyPoint> LoyaltyPoints { get; }
+        public IRepository<MailingList> MailingLists { get; }
+        public IRepository<MailingListSubscriber> MailingListSubscribers { get; }
+        public IRepository<Campaign> Campaigns { get; }
+        public IRepository<CampaignMailingList> CampaignMailingLists { get; }
+        public IRepository<CampaignRecipient> CampaignRecipients { get; }
+        public IRepository<ChartOfAccount> ChartOfAccounts { get; }
+        public IRepository<JournalEntry> JournalEntries { get; }
+        public IRepository<JournalEntryLine> JournalEntryLines { get; }
+        public IRepository<HelpCategory> HelpCategories { get; }
+        public IRepository<HelpArticle> HelpArticles { get; }
 
         public UnitOfWork(AppDbContext context)
         {
@@ -75,6 +97,29 @@ namespace EcomPlatform.Infrastructure.Repositories
             SyncLogs = new Repository<SyncLog>(context);
             WebhookEvents = new Repository<WebhookEvent>(context);
             UserProfiles = new Repository<UserProfile>(context);  // ✅ جديد
+            Warehouses = new Repository<Warehouse>(context);
+            StockMovements = new Repository<StockMovement>(context);
+            PaymentLinks = new Repository<PaymentLink>(context);
+            PaymentLinkItems = new Repository<PaymentLinkItem>(context);
+            PaymentLinkTransactions = new Repository<PaymentLinkTransaction>(context);
+            ReturnRequests = new Repository<ReturnRequest>(context);
+            ReturnItems = new Repository<ReturnItem>(context);
+            PosSessions = new Repository<PosSession>(context);
+            PosOrders     = new Repository<PosOrder>(context);
+            PosOrderItems = new Repository<PosOrderItem>(context);
+            ProductReviews = new Repository<ProductReview>(context);
+            LoyaltyPoints = new Repository<LoyaltyPoint>(context);
+            MailingLists = new Repository<MailingList>(context);
+            MailingListSubscribers = new Repository<MailingListSubscriber>(context);
+            Campaigns = new Repository<Campaign>(context);
+            CampaignMailingLists = new Repository<CampaignMailingList>(context);
+            CampaignRecipients = new Repository<CampaignRecipient>(context);
+            ChartOfAccounts = new Repository<ChartOfAccount>(context);
+            JournalEntries = new Repository<JournalEntry>(context);
+            JournalEntryLines = new Repository<JournalEntryLine>(context);
+            HelpCategories = new Repository<HelpCategory>(context);
+            HelpArticles = new Repository<HelpArticle>(context);
+
         }
 
         public async Task<int> SaveChangesAsync() =>

@@ -11,5 +11,8 @@
         Task SendTicketReplyAsync(string to, string customerName, string ticketSubject, string replyMessage);
         Task SendLowStockAlertAsync(string to, string productName, int currentStock, int threshold);
         Task SendSubscriptionRenewalAsync(string to, string tenantName, string planName, DateTime renewalDate, decimal amount);
+        Task SendPaymentLinkCreatedAsync(string to, string tenantName, string linkTitle, string publicUrl, decimal amount);
+        Task SendPaymentReceivedAsync(string to, string payerName, string linkTitle, decimal amount, string currency, string? orderNumber);
+
     }
 }

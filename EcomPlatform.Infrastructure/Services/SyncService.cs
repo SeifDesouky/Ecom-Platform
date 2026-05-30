@@ -144,7 +144,6 @@ namespace EcomPlatform.Infrastructure.Services
                     CreatedAt = DateTime.UtcNow
                 };
 
-                // الصورة الرئيسية
                 if (!string.IsNullOrEmpty(external.ImageUrl))
                 {
                     product.Images.Add(new ProductImage
@@ -269,7 +268,6 @@ namespace EcomPlatform.Infrastructure.Services
             }
             else
             {
-                // الأوردرات: نحدث الـ status فقط
                 existing.Status = MapOrderStatus(external.Status);
                 existing.UpdatedAt = DateTime.UtcNow;
 
@@ -342,7 +340,15 @@ namespace EcomPlatform.Infrastructure.Services
             integration.RefreshToken = result.Data.RefreshToken;
             integration.TokenExpiresAt = result.Data.ExpiresAt;
 
-            await _uow.StoreIntegrations.UpdateAsync(integration);
+            // ✅ FIX: جلب النسخة الـ tracked من DB بدل استخدام الـ decrypted copy
+            var trackedIntegration = await _uow.StoreIntegrations.GetByIdAsync(integration.Id);
+            if (trackedIntegration is not null)
+            {
+                trackedIntegration.ApiKey = integration.ApiKey;
+                trackedIntegration.RefreshToken = integration.RefreshToken;
+                trackedIntegration.TokenExpiresAt = integration.TokenExpiresAt;
+                await _uow.StoreIntegrations.UpdateAsync(trackedIntegration);
+            }
             await _uow.SaveChangesAsync();
         }
 
@@ -398,11 +404,15 @@ namespace EcomPlatform.Infrastructure.Services
 
             await _uow.SyncLogs.UpdateAsync(log);
 
-            integration.LastSyncAt = completedAt;
-            integration.ConsecutiveErrorCount = 0;
-            integration.LastErrorMessage = null;
-
-            await _uow.StoreIntegrations.UpdateAsync(integration);
+            // ✅ FIX: جلب النسخة الـ tracked من DB بدل استخدام الـ decrypted copy
+            var trackedIntegration = await _uow.StoreIntegrations.GetByIdAsync(integration.Id);
+            if (trackedIntegration is not null)
+            {
+                trackedIntegration.LastSyncAt = completedAt;
+                trackedIntegration.ConsecutiveErrorCount = 0;
+                trackedIntegration.LastErrorMessage = null;
+                await _uow.StoreIntegrations.UpdateAsync(trackedIntegration);
+            }
             await _uow.SaveChangesAsync();
 
             return new SyncResultDto
@@ -438,18 +448,23 @@ namespace EcomPlatform.Infrastructure.Services
 
             await _uow.SyncLogs.UpdateAsync(log);
 
-            integration.LastErrorMessage = errorMessage;
-            integration.ConsecutiveErrorCount += 1;
-
-            if (integration.ConsecutiveErrorCount >= 5)
+            // ✅ FIX: جلب النسخة الـ tracked من DB بدل استخدام الـ decrypted copy
+            var trackedIntegration = await _uow.StoreIntegrations.GetByIdAsync(integration.Id);
+            if (trackedIntegration is not null)
             {
-                integration.Status = IntegrationStatus.Error;
-                _logger.LogWarning(
-                    "Integration {Id} suspended after {Count} consecutive errors",
-                    integration.Id, integration.ConsecutiveErrorCount);
-            }
+                trackedIntegration.LastErrorMessage = errorMessage;
+                trackedIntegration.ConsecutiveErrorCount += 1;
 
-            await _uow.StoreIntegrations.UpdateAsync(integration);
+                if (trackedIntegration.ConsecutiveErrorCount >= 5)
+                {
+                    trackedIntegration.Status = IntegrationStatus.Error;
+                    _logger.LogWarning(
+                        "Integration {Id} suspended after {Count} consecutive errors",
+                        trackedIntegration.Id, trackedIntegration.ConsecutiveErrorCount);
+                }
+
+                await _uow.StoreIntegrations.UpdateAsync(trackedIntegration);
+            }
             await _uow.SaveChangesAsync();
 
             return new SyncResultDto

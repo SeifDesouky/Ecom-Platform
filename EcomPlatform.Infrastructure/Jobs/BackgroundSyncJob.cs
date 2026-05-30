@@ -52,12 +52,7 @@ namespace EcomPlatform.Infrastructure.Jobs
 
             try
             {
-                await using var scope = _scopeFactory.CreateAsyncScope();
-
-                var integrationService = scope.ServiceProvider
-                    .GetRequiredService<IIntegrationService>();
-
-                var activeIds = await GetActiveIntegrationIdsAsync(scope, ct);
+                var activeIds = await GetActiveIntegrationIdsAsync(ct);
 
                 if (!activeIds.Any())
                 {
@@ -72,13 +67,20 @@ namespace EcomPlatform.Infrastructure.Jobs
                     SyncEntityType.Inventory,
                 };
 
-                var tasks = activeIds
-                    .SelectMany(id =>
-                        entityTypes.Select(entity =>
-                            SyncOneAsync(integrationService, id, entity, ct)))
-                    .ToList();
+                // ✅ FIX: scope منفصل لكل integration + entity type بدل Task.WhenAll
+                foreach (var id in activeIds)
+                {
+                    foreach (var entityType in entityTypes)
+                    {
+                        if (ct.IsCancellationRequested) return;
 
-                await Task.WhenAll(tasks);
+                        await using var scope = _scopeFactory.CreateAsyncScope();
+                        var integrationService = scope.ServiceProvider
+                            .GetRequiredService<IIntegrationService>();
+
+                        await SyncOneAsync(integrationService, id, entityType, ct);
+                    }
+                }
 
                 _logger.LogInformation(
                     "[BackgroundSyncJob] Cycle done — {Count} integrations × {Types} types",
@@ -103,15 +105,16 @@ namespace EcomPlatform.Infrastructure.Jobs
             await service.SyncAsync(
                 integrationId,
                 entityType,
-                SyncDirection.Import,   // Import = من المنصة إلى Fatora
+                SyncDirection.Import,
                 isManual: false,
                 ct);
         }
 
-        private static async Task<IReadOnlyList<Guid>> GetActiveIntegrationIdsAsync(
-            AsyncServiceScope scope,
+        private async Task<IReadOnlyList<Guid>> GetActiveIntegrationIdsAsync(
             CancellationToken ct)
         {
+            // ✅ FIX: scope منفصل للقراءة
+            await using var scope = _scopeFactory.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
             return await db.Set<EcomPlatform.Core.Entities.StoreIntegration>()

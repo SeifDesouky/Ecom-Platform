@@ -1,7 +1,9 @@
 ﻿using EcomPlatform.Core.Entities.Common;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EcomPlatform.Core.Entities
 {
+    [Table("UserProfiles")]
     public class UserProfile : BaseEntity
     {
         // ── FK ───────────────────────────────────────────────────────────

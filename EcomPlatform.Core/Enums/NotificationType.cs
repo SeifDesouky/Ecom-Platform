@@ -9,6 +9,7 @@
         Order = 5,
         Payment = 6,
         Stock = 7,
-        System = 8
+        System = 8,
+        Return = 5
     }
 }

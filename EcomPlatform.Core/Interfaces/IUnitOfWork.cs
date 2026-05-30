@@ -36,7 +36,28 @@ namespace EcomPlatform.Core.Interfaces
         IRepository<DashboardSnapshot> DashboardSnapshots { get; }
         IRepository<PasswordResetToken> PasswordResetTokens { get; }
         IRepository<UserProfile> UserProfiles { get; }
-
+        IRepository<Warehouse> Warehouses { get; }
+        IRepository<StockMovement> StockMovements { get; }
+        IRepository<PaymentLink> PaymentLinks { get; }
+        IRepository<PaymentLinkItem> PaymentLinkItems { get; }
+        IRepository<PaymentLinkTransaction> PaymentLinkTransactions { get; }
+        IRepository<ReturnRequest> ReturnRequests { get; }
+        IRepository<ReturnItem> ReturnItems { get; }
+        IRepository<PosSession> PosSessions { get; }
+        IRepository<PosOrder> PosOrders { get; }
+        IRepository<PosOrderItem> PosOrderItems { get; }
+        IRepository<ProductReview> ProductReviews { get; }
+        IRepository<LoyaltyPoint> LoyaltyPoints { get; }
+        IRepository<MailingList> MailingLists { get; }
+        IRepository<MailingListSubscriber> MailingListSubscribers { get; }
+        IRepository<Campaign> Campaigns { get; }
+        IRepository<CampaignMailingList> CampaignMailingLists { get; }
+        IRepository<CampaignRecipient> CampaignRecipients { get; }
+        IRepository<ChartOfAccount> ChartOfAccounts { get; }
+        IRepository<JournalEntry> JournalEntries { get; }
+        IRepository<JournalEntryLine> JournalEntryLines { get; }
+        IRepository<HelpCategory> HelpCategories { get; }
+        IRepository<HelpArticle> HelpArticles { get; }
         Task<int> SaveChangesAsync();
     }
 }

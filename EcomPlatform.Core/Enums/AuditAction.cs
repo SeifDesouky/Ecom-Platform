@@ -11,6 +11,8 @@
         PasswordChange = 7,
         RoleChange = 8,
         FailedLogin = 9,   // ← جديد
-        SecurityAlert = 10   // ← جديد
+        SecurityAlert = 10,
+        Read = 11,   // لو مش موجود
+        Export = 12    // لو مش موجود
     }
 }

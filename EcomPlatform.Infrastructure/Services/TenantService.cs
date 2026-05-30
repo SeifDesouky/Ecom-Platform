@@ -10,10 +10,12 @@ namespace EcomPlatform.Infrastructure.Services
     public class TenantService : ITenantService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAccountingService _accountingService;
 
-        public TenantService(IUnitOfWork unitOfWork)
+        public TenantService(IUnitOfWork unitOfWork, IAccountingService accountingService)
         {
             _unitOfWork = unitOfWork;
+            _accountingService = accountingService;
         }
 
         public async Task<ApiResponse<TenantResponseDto>> CreateAsync(CreateTenantDto dto)
@@ -45,6 +47,9 @@ namespace EcomPlatform.Infrastructure.Services
 
             await _unitOfWork.Tenants.AddAsync(tenant);
             await _unitOfWork.SaveChangesAsync();
+
+            // تهيئة شجرة الحسابات الافتراضية للـ tenant الجديد
+            await _accountingService.InitializeDefaultAccountsAsync(tenant.Id);
 
             return ApiResponse<TenantResponseDto>.Ok(MapToDto(tenant), "Tenant created successfully");
         }

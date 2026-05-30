@@ -10,10 +10,12 @@ namespace EcomPlatform.Infrastructure.Services
     public class PlanService : IPlanService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAccountingService _accountingService;
 
-        public PlanService(IUnitOfWork unitOfWork)
+        public PlanService(IUnitOfWork unitOfWork, IAccountingService accountingService)
         {
             _unitOfWork = unitOfWork;
+            _accountingService = accountingService;
         }
 
         public async Task<ApiResponse<PlanResponseDto>> CreateAsync(CreatePlanDto dto)
@@ -184,6 +186,9 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Subscriptions.AddAsync(subscription);
             await _unitOfWork.SaveChangesAsync();
 
+            // ✅ قيد محاسبي تلقائي عند تأكيد الاشتراك
+            await _accountingService.CreateSubscriptionPaidEntryAsync(subscription.Id, dto.TenantId);
+
             subscription.Plan = plan;
             subscription.Tenant = tenant;
 
@@ -284,6 +289,11 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Subscriptions.UpdateAsync(subscription);
             await _unitOfWork.SaveChangesAsync();
 
+            // ✅ قيد محاسبي تلقائي عند تجديد الاشتراك
+            if (subscription.TenantId.HasValue)
+                await _accountingService.CreateSubscriptionPaidEntryAsync(
+                    subscription.Id, subscription.TenantId.Value);
+
             subscription.Plan = plan;
             subscription.Tenant = tenant;
 
@@ -317,7 +327,6 @@ namespace EcomPlatform.Infrastructure.Services
             Subscription subscription) => new()
             {
                 Id = subscription.Id,
-                // ✅ FIX: استخدام .GetValueOrDefault() لتحويل Guid? إلى Guid
                 TenantId = subscription.TenantId.GetValueOrDefault(),
                 TenantName = subscription.Tenant?.Name ?? string.Empty,
                 PlanId = subscription.PlanId.GetValueOrDefault(),

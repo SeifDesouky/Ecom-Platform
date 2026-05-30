@@ -1,8 +1,4 @@
-﻿// ================================================================
-// EcomPlatform.Infrastructure/Services/AuthService.cs  — UPDATED
-// التغيير: إضافة LoginWithGoogleAsync و LoginWithAppleAsync
-// ================================================================
-using EcomPlatform.Application.Common;
+﻿using EcomPlatform.Application.Common;
 using EcomPlatform.Application.DTOs.Auth;
 using EcomPlatform.Application.Services.Interfaces;
 using EcomPlatform.Core.Entities;
@@ -30,7 +26,6 @@ namespace EcomPlatform.Infrastructure.Services
 
         private const int MaxActiveSessionsPerUser = 5;
 
-        // ── FIX 2: AppleTokenPayload moved inside the class as private (not file-local)
         private sealed record AppleTokenPayload(string Subject, string Email);
 
         public AuthService(
@@ -55,7 +50,6 @@ namespace EcomPlatform.Infrastructure.Services
             string? deviceInfo,
             GoogleLoginDto dto)
         {
-            // 1. Verify the token with Google
             GoogleJsonWebSignature.Payload payload;
             try
             {
@@ -70,7 +64,6 @@ namespace EcomPlatform.Infrastructure.Services
                 return ApiResponse<AuthResponseDto>.Fail($"Invalid Google token: {ex.Message}");
             }
 
-            // 2. جيب أو أنشئ الـ User
             var user = await FindOrCreateSocialUserAsync(
                 googleId: payload.Subject,
                 appleId: null,
@@ -82,7 +75,6 @@ namespace EcomPlatform.Infrastructure.Services
             if (!user.IsActive)
                 return ApiResponse<AuthResponseDto>.Fail("Account is disabled");
 
-            // 3. أنشئ الـ tokens وسجّل الـ session
             return await CreateAuthSessionAsync(user, ipAddress, deviceInfo, "Google");
         }
 
@@ -92,7 +84,6 @@ namespace EcomPlatform.Infrastructure.Services
             string? deviceInfo,
             AppleLoginDto dto)
         {
-            // 1. Verify the Apple identity token
             AppleTokenPayload payload;
             try
             {
@@ -103,23 +94,20 @@ namespace EcomPlatform.Infrastructure.Services
                 return ApiResponse<AuthResponseDto>.Fail($"Invalid Apple token: {ex.Message}");
             }
 
-            // Apple بيبعت الاسم بس في أول مرة — لو مش موجود نحط placeholder
             var firstName = dto.FirstName ?? "Apple";
             var lastName = dto.LastName ?? "User";
 
-            // 2. جيب أو أنشئ الـ User
             var user = await FindOrCreateSocialUserAsync(
                 googleId: null,
                 appleId: payload.Subject,
                 email: payload.Email,
                 firstName: firstName,
                 lastName: lastName,
-                isEmailVerified: true); // Apple verified emails are always verified
+                isEmailVerified: true);
 
             if (!user.IsActive)
                 return ApiResponse<AuthResponseDto>.Fail("Account is disabled");
 
-            // 3. لو الاسم وصل (أول مرة) وكان فعلاً placeholder — حدّثه
             if (dto.FirstName != null && user.FirstName == "Apple")
             {
                 user.FirstName = dto.FirstName;
@@ -128,15 +116,10 @@ namespace EcomPlatform.Infrastructure.Services
                 await _unitOfWork.SaveChangesAsync();
             }
 
-            // 4. أنشئ الـ tokens وسجّل الـ session
             return await CreateAuthSessionAsync(user, ipAddress, deviceInfo, "Apple");
         }
 
         // ── Shared: Find or Create Social User ────────────────────────────────
-        /// <summary>
-        /// يدور على اليوزر بالـ socialId أو الـ email —
-        /// لو مش موجود ينشئه — لو موجود بـ email يربط الـ socialId بحسابه الحالي
-        /// </summary>
         private async Task<User> FindOrCreateSocialUserAsync(
             string? googleId,
             string? appleId,
@@ -145,7 +128,6 @@ namespace EcomPlatform.Infrastructure.Services
             string lastName,
             bool isEmailVerified)
         {
-            // البحث بالـ socialId أولاً (أدق)
             IEnumerable<User> found;
 
             if (googleId != null)
@@ -162,13 +144,11 @@ namespace EcomPlatform.Infrastructure.Services
                     return byAppleId;
             }
 
-            // البحث بالـ email — ممكن اليوزر سجّل قبل بـ email/password
             found = await _unitOfWork.Users.FindAsync(u => u.Email == email);
             var existingUser = found.FirstOrDefault();
 
             if (existingUser != null)
             {
-                // ربط الـ socialId بالحساب الموجود
                 if (googleId != null && existingUser.GoogleId == null)
                     existingUser.GoogleId = googleId;
 
@@ -184,14 +164,13 @@ namespace EcomPlatform.Infrastructure.Services
                 return existingUser;
             }
 
-            // إنشاء حساب جديد
             var newUser = new User
             {
                 FirstName = firstName,
                 LastName = lastName,
                 Email = email,
                 Phone = string.Empty,
-                PasswordHash = null, // Social-only account — مفيش password
+                PasswordHash = null,
                 Role = UserRole.TenantAdmin,
                 IsActive = true,
                 IsEmailVerified = isEmailVerified,
@@ -200,6 +179,11 @@ namespace EcomPlatform.Infrastructure.Services
             };
 
             await _unitOfWork.Users.AddAsync(newUser);
+            await _unitOfWork.SaveChangesAsync();
+
+            // ← إنشاء UserProfile للـ social user الجديد
+            var profile = new UserProfile { UserId = newUser.Id };
+            await _unitOfWork.UserProfiles.AddAsync(profile);
             await _unitOfWork.SaveChangesAsync();
 
             _ = _emailService.SendWelcomeAsync(
@@ -256,12 +240,8 @@ namespace EcomPlatform.Infrastructure.Services
         }
 
         // ── Apple Token Verification ──────────────────────────────────────────
-        /// <summary>
-        /// Apple مش عندهم NuGet library زي Google — بنعمل verify يدوي بالـ public keys
-        /// </summary>
         private async Task<AppleTokenPayload> VerifyAppleTokenAsync(string idToken)
         {
-            // جيب الـ Apple public keys
             using var httpClient = new HttpClient();
             var keysJson = await httpClient.GetStringAsync("https://appleid.apple.com/auth/keys");
             var jwks = new JsonWebKeySet(keysJson);
@@ -270,7 +250,6 @@ namespace EcomPlatform.Infrastructure.Services
             var jwtToken = handler.ReadJwtToken(idToken);
             var kid = jwtToken.Header.Kid;
 
-            // طابق الـ key
             var matchingKey = jwks.Keys.FirstOrDefault(k => k.Kid == kid)
                 ?? throw new SecurityTokenException("No matching Apple public key found");
 
@@ -287,7 +266,6 @@ namespace EcomPlatform.Infrastructure.Services
 
             var principal = handler.ValidateToken(idToken, validationParams, out _);
 
-            // FIX 1: استخدام FindFirst بدل FindFirstValue + FIX 3: positional record constructor
             return new AppleTokenPayload(
                 Subject: principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                     ?? throw new SecurityTokenException("Missing sub claim"),
@@ -296,10 +274,7 @@ namespace EcomPlatform.Infrastructure.Services
             );
         }
 
-        // =========================================================
-        // الكود القديم كما هو بالكامل بدون أي تعديل
-        // =========================================================
-
+        // ── Register ──────────────────────────────────────────────────────────
         public async Task<ApiResponse<AuthResponseDto>> RegisterAsync(RegisterDto dto)
         {
             var existingUsers = await _unitOfWork.Users.FindAsync(u => u.Email == dto.Email);
@@ -320,6 +295,11 @@ namespace EcomPlatform.Infrastructure.Services
             };
 
             await _unitOfWork.Users.AddAsync(user);
+            await _unitOfWork.SaveChangesAsync();
+
+            // ← إنشاء UserProfile للـ user الجديد
+            var profile = new UserProfile { UserId = user.Id };
+            await _unitOfWork.UserProfiles.AddAsync(profile);
             await _unitOfWork.SaveChangesAsync();
 
             _ = _emailService.SendWelcomeAsync(

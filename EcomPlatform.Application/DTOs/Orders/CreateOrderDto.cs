@@ -1,4 +1,6 @@
-﻿namespace EcomPlatform.Application.DTOs.Orders
+﻿using EcomPlatform.Core.Enums;
+
+namespace EcomPlatform.Application.DTOs.Orders
 {
     public class CreateOrderDto
     {
@@ -15,6 +17,9 @@
         public decimal Discount { get; set; }
         public decimal Tax { get; set; }
         public string Notes { get; set; } = string.Empty;
+        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
+
         public List<CreateOrderItemDto> Items { get; set; } = new();
     }
 

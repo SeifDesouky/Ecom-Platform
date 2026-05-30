@@ -1,6 +1,7 @@
 ﻿using EcomPlatform.Application.Common.Interfaces;
 using EcomPlatform.Core.Entities;
 using EcomPlatform.Core.Entities.Common;
+using EcomPlatform.Infrastructure.Data.Configurations;
 using Microsoft.EntityFrameworkCore;
 
 namespace EcomPlatform.Infrastructure.Data
@@ -44,12 +45,37 @@ namespace EcomPlatform.Infrastructure.Data
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<DashboardSnapshot> DashboardSnapshots => Set<DashboardSnapshot>();
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
-        public DbSet<UserProfile> UserProfiles => Set<UserProfile>(); // ✅ جديد
+        public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
 
         // ── Marketplace Integrations ──────────────────────────────────────────
         public DbSet<StoreIntegration> StoreIntegrations => Set<StoreIntegration>();
         public DbSet<SyncLog> SyncLogs => Set<SyncLog>();
         public DbSet<WebhookEvent> WebhookEvents => Set<WebhookEvent>();
+        public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+        public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+        public DbSet<PaymentLink> PaymentLinks { get; set; }
+        public DbSet<PaymentLinkItem> PaymentLinkItems { get; set; }
+        public DbSet<PaymentLinkTransaction> PaymentLinkTransactions { get; set; }
+        public DbSet<ReturnRequest> ReturnRequests { get; set; }
+        public DbSet<ReturnItem> ReturnItems { get; set; }
+        public DbSet<PosSession> PosSessions => Set<PosSession>();
+        public DbSet<PosOrder> PosOrders => Set<PosOrder>();
+        public DbSet<PosOrderItem> PosOrderItems => Set<PosOrderItem>();
+        public DbSet<ProductReview> ProductReviews => Set<ProductReview>();
+        public DbSet<LoyaltyPoint> LoyaltyPoints => Set<LoyaltyPoint>();
+        public DbSet<MailingList> MailingLists => Set<MailingList>();
+        public DbSet<MailingListSubscriber> MailingListSubscribers => Set<MailingListSubscriber>();
+        public DbSet<Campaign> Campaigns => Set<Campaign>();
+        public DbSet<CampaignMailingList> CampaignMailingLists => Set<CampaignMailingList>();
+        public DbSet<CampaignRecipient> CampaignRecipients => Set<CampaignRecipient>();
+        public DbSet<ChartOfAccount> ChartOfAccounts { get; set; }
+        public DbSet<JournalEntry> JournalEntries { get; set; }
+        public DbSet<JournalEntryLine> JournalEntryLines { get; set; }
+
+        // ── Help Center ───────────────────────────────────────────────────────
+        public DbSet<HelpCategory> HelpCategories => Set<HelpCategory>();
+        public DbSet<HelpArticle> HelpArticles => Set<HelpArticle>();
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -177,6 +203,32 @@ namespace EcomPlatform.Infrastructure.Data
                     (!_tenantProvider.TenantId.HasValue ||
                      x.TenantId == _tenantProvider.TenantId));
 
+            // ── POS ──────────────────────────────────────────────────────────
+            modelBuilder.Entity<PosSession>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<PosOrder>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<ProductReview>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            // ── Loyalty ──────────────────────────────────────────────────────
+            modelBuilder.Entity<LoyaltyPoint>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
             // ================================================================
             // Global entities (IsDeleted only)
             // ================================================================
@@ -212,6 +264,31 @@ namespace EcomPlatform.Infrastructure.Data
             modelBuilder.Entity<ShippingMethod>()
                 .HasQueryFilter(x => !x.IsDeleted);
 
+            modelBuilder.Entity<PaymentLinkItem>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<PosOrderItem>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<ReturnItem>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<ReturnRequest>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            // ── Warehouse & StockMovement ─────────────────────────────────────
+            modelBuilder.Entity<Warehouse>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<StockMovement>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
             modelBuilder.Entity<DashboardSnapshot>()
                 .HasQueryFilter(x => !x.IsDeleted);
 
@@ -221,9 +298,50 @@ namespace EcomPlatform.Infrastructure.Data
             modelBuilder.Entity<PasswordResetToken>()
                 .HasQueryFilter(x => !x.IsDeleted);
 
-            // ✅ جديد: UserProfile — مطابق لـ User filter لحل الـ warning
             modelBuilder.Entity<UserProfile>()
                 .HasQueryFilter(x => !x.IsDeleted && !x.User.IsDeleted);
+
+            // ── Mailing & Campaigns ───────────────────────────────────────────
+            modelBuilder.Entity<MailingList>()
+                .HasQueryFilter(x => !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue || x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<MailingListSubscriber>()
+                .HasQueryFilter(x => !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue || x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<Campaign>()
+                .HasQueryFilter(x => !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue || x.TenantId == _tenantProvider.TenantId));
+
+            // ✅ Fix: matching filters for Campaign children
+            modelBuilder.Entity<CampaignMailingList>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<CampaignRecipient>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            // ── Help Center ───────────────────────────────────────────────────
+            modelBuilder.Entity<HelpCategory>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<HelpArticle>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.ApplyConfiguration(new PaymentLinkConfiguration());
+            modelBuilder.ApplyConfiguration(new PaymentLinkItemConfiguration());
+            modelBuilder.ApplyConfiguration(new PaymentLinkTransactionConfiguration());
+            modelBuilder.ApplyConfiguration(new ReturnRequestConfiguration());
+            modelBuilder.ApplyConfiguration(new ReturnItemConfiguration());
+            modelBuilder.ApplyConfiguration(new ChartOfAccountConfiguration());
+            modelBuilder.ApplyConfiguration(new JournalEntryConfiguration());
+            modelBuilder.ApplyConfiguration(new JournalEntryLineConfiguration());
         }
 
         public override Task<int> SaveChangesAsync(

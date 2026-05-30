@@ -4,6 +4,7 @@ using EcomPlatform.Application.Services.Interfaces;
 using EcomPlatform.Core.Entities;
 using EcomPlatform.Core.Enums;
 using EcomPlatform.Core.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EcomPlatform.Infrastructure.Services
 {
@@ -11,11 +12,19 @@ namespace EcomPlatform.Infrastructure.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IEmailService _emailService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ILoyaltyService _loyaltyService;
 
-        public OrderService(IUnitOfWork unitOfWork, IEmailService emailService)
+        public OrderService(
+            IUnitOfWork unitOfWork,
+            IEmailService emailService,
+            IServiceProvider serviceProvider,
+            ILoyaltyService loyaltyService)
         {
             _unitOfWork = unitOfWork;
             _emailService = emailService;
+            _serviceProvider = serviceProvider;
+            _loyaltyService = loyaltyService;
         }
 
         public async Task<ApiResponse<OrderResponseDto>> CreateAsync(CreateOrderDto dto)
@@ -132,6 +141,16 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Orders.UpdateAsync(order);
             await _unitOfWork.SaveChangesAsync();
 
+            // منح نقاط الولاء عند التسليم
+            if (status == OrderStatus.Delivered && order.CustomerId.HasValue)
+            {
+                await _loyaltyService.EarnFromOrderAsync(
+                    order.TenantId ?? Guid.Empty,
+                    order.CustomerId.Value,
+                    order.Id,
+                    order.Total);
+            }
+
             return ApiResponse<bool>.Ok(true, "Order status updated successfully");
         }
 
@@ -177,6 +196,13 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Orders.UpdateAsync(order);
             await _unitOfWork.SaveChangesAsync();
 
+            // ✅ قيد محاسبي تلقائي عند دفع الطلب
+            if (status == PaymentStatus.Paid && order.TenantId.HasValue)
+            {
+                var accounting = _serviceProvider.GetRequiredService<IAccountingService>();
+                await accounting.CreateOrderPaidEntryAsync(order.Id, order.TenantId.Value);
+            }
+
             return ApiResponse<bool>.Ok(true, "Payment status updated successfully");
         }
 
@@ -215,6 +241,14 @@ namespace EcomPlatform.Infrastructure.Services
             }
 
             order.Status = OrderStatus.Cancelled;
+
+            // إنشاء Return Request تلقائي لو الأوردر كان Paid
+            if (order.PaymentStatus == PaymentStatus.Paid)
+            {
+                var returnService = _serviceProvider.GetRequiredService<IReturnService>();
+                await returnService.CreateFromCancelAsync(order.Id, order.TenantId ?? Guid.Empty);
+            }
+
             await _unitOfWork.Orders.UpdateAsync(order);
             await _unitOfWork.SaveChangesAsync();
 

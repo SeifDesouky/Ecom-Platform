@@ -62,7 +62,8 @@ namespace EcomPlatform.Infrastructure.Services
                 SyncInventory = dto.SyncInventory,
                 SyncPrices = dto.SyncPrices,
                 AutoSyncIntervalMinutes = dto.AutoSyncIntervalMinutes,
-                Status = IntegrationStatus.PendingSetup
+                // ✅ FIX: Active مباشرة بدل PendingSetup
+                Status = IntegrationStatus.Active
             };
 
             await _unitOfWork.StoreIntegrations.AddAsync(integration);
@@ -240,7 +241,6 @@ namespace EcomPlatform.Infrastructure.Services
             if (integration.Status != IntegrationStatus.Active)
                 return ApiResponse<SyncResultDto>.Fail("Integration is not active");
 
-            // الـ SyncService يشتغل مع نسخة fields مفكوك تشفيرها
             var decrypted = DecryptSensitiveFields(integration);
 
             var result = await _syncService.SyncAsync(
@@ -270,10 +270,6 @@ namespace EcomPlatform.Infrastructure.Services
 
         // ── Helpers ───────────────────────────────────────────────────────────
 
-        /// <summary>
-        /// يرجع نسخة من الـ integration بالقيم الحساسة مفكوك تشفيرها.
-        /// بتتبعت للـ adapter/SyncService بس — مش بتتحفظ في الـ DB.
-        /// </summary>
         private StoreIntegration DecryptSensitiveFields(StoreIntegration i) => new()
         {
             Id = i.Id,
@@ -302,7 +298,6 @@ namespace EcomPlatform.Infrastructure.Services
 
         // ── Mapping ──────────────────────────────────────────────────────────
 
-        // ⚠️ لا يكشف ApiKey أو ApiSecret أبدًا
         private static IntegrationDto MapToDto(StoreIntegration i) => new()
         {
             Id = i.Id,

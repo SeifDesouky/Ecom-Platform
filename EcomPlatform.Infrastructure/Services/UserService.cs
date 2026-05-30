@@ -37,6 +37,11 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Users.AddAsync(user);
             await _unitOfWork.SaveChangesAsync();
 
+            // ← إنشاء UserProfile للـ user الجديد
+            var profile = new UserProfile { UserId = user.Id };
+            await _unitOfWork.UserProfiles.AddAsync(profile);
+            await _unitOfWork.SaveChangesAsync();
+
             return ApiResponse<UserResponseDto>.Ok(MapToDto(user), "User created successfully");
         }
 

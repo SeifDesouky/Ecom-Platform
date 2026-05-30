@@ -215,6 +215,47 @@ namespace EcomPlatform.Infrastructure.Services
             await SendAsync(to, subject, body);
         }
 
+        // ─── Payment Link Created ───────────────────────────────────────────
+        public async Task SendPaymentLinkCreatedAsync(
+            string to, string tenantName, string linkTitle, string publicUrl, decimal amount)
+        {
+            var subject = $"تم إنشاء رابط الدفع: {linkTitle}";
+            var body = $@"
+        <div dir='rtl' style='font-family:Arial;'>
+            <h2>مرحباً {tenantName}</h2>
+            <p>تم إنشاء رابط دفع جديد بنجاح.</p>
+            <table>
+                <tr><td><b>العنوان:</b></td><td>{linkTitle}</td></tr>
+                <tr><td><b>المبلغ:</b></td><td>{amount:N2} ريال</td></tr>
+            </table>
+            <p><a href='{publicUrl}' style='background:#007bff;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;'>
+                عرض الرابط
+            </a></p>
+        </div>";
+            await SendAsync(to, subject, body);
+        }
+
+        // ─── Payment Received ───────────────────────────────────────────────
+        public async Task SendPaymentReceivedAsync(
+            string to, string payerName, string linkTitle, decimal amount, string currency, string? orderNumber)
+        {
+            var subject = $"تم استلام دفعة: {linkTitle}";
+            var orderPart = orderNumber != null
+                ? $"<tr><td><b>رقم الطلب:</b></td><td>{orderNumber}</td></tr>"
+                : "";
+            var body = $@"
+        <div dir='rtl' style='font-family:Arial;'>
+            <h2>تم استلام الدفعة بنجاح ✓</h2>
+            <table>
+                <tr><td><b>الدافع:</b></td><td>{payerName}</td></tr>
+                <tr><td><b>المبلغ:</b></td><td>{amount:N2} {currency}</td></tr>
+                <tr><td><b>الرابط:</b></td><td>{linkTitle}</td></tr>
+                {orderPart}
+            </table>
+        </div>";
+            await SendAsync(to, subject, body);
+        }
+
         // ─── HTML Layout Builder ────────────────────────────────────────────
         private static string BuildLayout(string title, string preheader, string content)
         {
@@ -287,5 +328,6 @@ namespace EcomPlatform.Infrastructure.Services
                 </div>
             """;
         }
-    }
-}
+
+    }  // ← إقفال كلاس EmailService
+}      // ← إقفال الـ namespace

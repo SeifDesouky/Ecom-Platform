@@ -126,7 +126,9 @@ namespace EcomPlatform.API.Controllers
 
         private Guid GetTenantId()
         {
-            var claim = User.Claims.FirstOrDefault(c => c.Type == "TenantId");
+            var claim = User.Claims.FirstOrDefault(c =>
+                c.Type == "tenantId" ||
+                c.Type == "TenantId");
             return claim != null && Guid.TryParse(claim.Value, out var id) ? id : Guid.Empty;
         }
     }

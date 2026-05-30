@@ -10,6 +10,7 @@
         Cancelled = 6,
         Refunded = 7,
         Returned = 8,
+        Completed = 9
     }
 
     public enum PaymentStatus

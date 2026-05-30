@@ -165,6 +165,179 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.Campaign", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("BouncedCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ClickedCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("DeliveredCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FromEmail")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("FromName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("HtmlBody")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid?>("MailingListId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("OpenedCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PreviewText")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("ScheduledAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("SentCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("TextBody")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("TotalRecipients")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UnsubscribedCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MailingListId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("Campaigns");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.CampaignMailingList", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid>("MailingListId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.HasIndex("MailingListId");
+
+                    b.ToTable("CampaignMailingLists");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.CampaignRecipient", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("BouncedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("ClickedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("FailReason")
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("OpenedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TrackingToken")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.ToTable("CampaignRecipients");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.Category", b =>
                 {
                     b.Property<Guid>("Id")
@@ -219,6 +392,69 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.HasIndex("TenantId", "ParentId");
 
                     b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.ChartOfAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("NameEn")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("Nature")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("ChartOfAccounts", (string)null);
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.Coupon", b =>
@@ -494,6 +730,137 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.ToTable("DashboardSnapshots");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.HelpArticle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid?>("AuthorId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Excerpt")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("HelpCategoryId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("HelpfulCount")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsFAQ")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("MetaDescription")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("MetaTitle")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("NotHelpfulCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Tags")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("ViewCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("HelpCategoryId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("HelpArticles");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.HelpCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("HelpCategories");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.Invoice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -625,6 +992,297 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.HasIndex("InvoiceId");
 
                     b.ToTable("InvoiceItems");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.JournalEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime>("EntryDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("EntryNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ReferenceNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<Guid?>("ReversedByEntryId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("TotalCredit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalDebit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("EntryNumber")
+                        .IsUnique();
+
+                    b.HasIndex("ReferenceId", "Source");
+
+                    b.HasIndex("TenantId", "Status", "EntryDate");
+
+                    b.ToTable("JournalEntries", (string)null);
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.JournalEntryLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("AccountCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("AccountName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("Credit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Debit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid>("JournalEntryId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("JournalEntryId");
+
+                    b.ToTable("JournalEntryLines", (string)null);
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.LoyaltyPoint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("BalanceAfter")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("LoyaltyPoints");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.MailingList", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("WelcomeEmailBody")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("WelcomeEmailSubject")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("MailingLists");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.MailingListSubscriber", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CustomFields")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("MailingListId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("UnsubscribeToken")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("UnsubscribedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("MailingListId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("MailingListSubscribers");
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.Notification", b =>
@@ -966,6 +1624,231 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.ToTable("PasswordResetTokens");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PaymentLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)")
+                        .HasDefaultValue("SAR");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("FailureRedirectUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("LinkType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaxUses")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SuccessRedirectUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("UsedCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("TenantId", "Status", "CreatedAt");
+
+                    b.ToTable("PaymentLinks", (string)null);
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PaymentLinkItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid>("PaymentLinkId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentLinkId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("PaymentLinkItems", (string)null);
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PaymentLinkTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)")
+                        .HasDefaultValue("SAR");
+
+                    b.Property<string>("FailureReason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("GatewayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("GatewayResponse")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<string>("GatewayTransactionId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<Guid?>("GeneratedOrderId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("PayerEmail")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("PayerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("PayerPhone")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<Guid>("PaymentLinkId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GatewayTransactionId");
+
+                    b.HasIndex("GeneratedOrderId");
+
+                    b.HasIndex("PaymentLinkId");
+
+                    b.HasIndex("TenantId", "Status", "CreatedAt");
+
+                    b.ToTable("PaymentLinkTransactions", (string)null);
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.Plan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1033,6 +1916,227 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Plans");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PosOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("CardPaid")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CashPaid")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Change")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CouponCode")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("CustomerPhone")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid?>("LinkedOrderId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PosSessionId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ReceiptNumber")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("LinkedOrderId");
+
+                    b.HasIndex("PosSessionId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("PosOrders");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PosOrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<decimal>("LineDiscount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("PosOrderId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ProductBarcode")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ProductImage")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ProductSKU")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PosOrderId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("PosOrderItems");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PosSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal?>("CashDifference")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("CashierId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal?>("ClosingCash")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal?>("ExpectedCash")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("OpenedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("OpeningCash")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("OrdersCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("TerminalName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("TotalCardSales")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalCashSales")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalRefunds")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalSales")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashierId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("PosSessions");
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.Product", b =>
@@ -1187,6 +2291,75 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.ToTable("ProductImages");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.ProductReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("HelpfulCount")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsVerifiedPurchase")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("OwnerRepliedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("OwnerReply")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReviewerEmail")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ReviewerName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("ProductReviews");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1241,6 +2414,151 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.HasIndex("UserId", "IsRevoked", "ExpiresAt");
 
                     b.ToTable("RefreshTokens", (string)null);
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.ReturnItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid>("OrderItemId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<string>("ProductSKU")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("QuantityApproved")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityRequested")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ReturnRequestId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderItemId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ReturnRequestId");
+
+                    b.ToTable("ReturnItems", (string)null);
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.ReturnRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("ApprovedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Initiator")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReasonNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("RefundGatewayTransactionId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("RefundMethod")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RefundNote")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("RefundStatus")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RefundedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<decimal>("RequestedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ReturnNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("ReviewedById")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("StockRestored")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("ReturnNumber")
+                        .IsUnique();
+
+                    b.HasIndex("ReviewedById");
+
+                    b.HasIndex("TenantId", "Status", "CreatedAt");
+
+                    b.ToTable("ReturnRequests", (string)null);
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.Setting", b =>
@@ -1385,6 +2703,86 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("ShippingZones");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.StockMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid?>("FromWarehouseId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityAfter")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityBefore")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("UnitCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("WarehouseId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("FromWarehouseId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("Reference");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.HasIndex("TenantId", "ProductId", "CreatedAt");
+
+                    b.HasIndex("TenantId", "WarehouseId", "CreatedAt");
+
+                    b.ToTable("StockMovements", (string)null);
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.StoreIntegration", b =>
@@ -1953,7 +3351,74 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("UserProfile");
+                    b.ToTable("UserProfiles");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.Warehouse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("ManagerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("Warehouses", (string)null);
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.WebhookEvent", b =>
@@ -2071,9 +3536,69 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.Campaign", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.MailingList", null)
+                        .WithMany("Campaigns")
+                        .HasForeignKey("MailingListId");
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.CampaignMailingList", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.Campaign", "Campaign")
+                        .WithMany("MailingLists")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.MailingList", "MailingList")
+                        .WithMany()
+                        .HasForeignKey("MailingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+
+                    b.Navigation("MailingList");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.CampaignRecipient", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.Campaign", "Campaign")
+                        .WithMany("Recipients")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.Category", b =>
                 {
                     b.HasOne("EcomPlatform.Core.Entities.Category", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parent");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.ChartOfAccount", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.ChartOfAccount", "Parent")
                         .WithMany("Children")
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -2129,6 +3654,38 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.HelpArticle", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId");
+
+                    b.HasOne("EcomPlatform.Core.Entities.HelpCategory", "HelpCategory")
+                        .WithMany("Articles")
+                        .HasForeignKey("HelpCategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Author");
+
+                    b.Navigation("HelpCategory");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.HelpCategory", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.Invoice", b =>
                 {
                     b.HasOne("EcomPlatform.Core.Entities.Order", "Order")
@@ -2156,6 +3713,91 @@ namespace EcomPlatform.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.JournalEntry", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.JournalEntryLine", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.ChartOfAccount", "Account")
+                        .WithMany("Lines")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.JournalEntry", "JournalEntry")
+                        .WithMany("Lines")
+                        .HasForeignKey("JournalEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("JournalEntry");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.LoyaltyPoint", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.MailingList", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.MailingListSubscriber", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId");
+
+                    b.HasOne("EcomPlatform.Core.Entities.MailingList", "MailingList")
+                        .WithMany("Subscribers")
+                        .HasForeignKey("MailingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("MailingList");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.Notification", b =>
@@ -2233,6 +3875,139 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PaymentLink", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EcomPlatform.Core.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PaymentLinkItem", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.PaymentLink", "PaymentLink")
+                        .WithMany("Items")
+                        .HasForeignKey("PaymentLinkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PaymentLink");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PaymentLinkTransaction", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.Order", "GeneratedOrder")
+                        .WithMany()
+                        .HasForeignKey("GeneratedOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EcomPlatform.Core.Entities.PaymentLink", "PaymentLink")
+                        .WithMany("Transactions")
+                        .HasForeignKey("PaymentLinkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("GeneratedOrder");
+
+                    b.Navigation("PaymentLink");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PosOrder", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId");
+
+                    b.HasOne("EcomPlatform.Core.Entities.Order", "LinkedOrder")
+                        .WithMany()
+                        .HasForeignKey("LinkedOrderId");
+
+                    b.HasOne("EcomPlatform.Core.Entities.PosSession", "PosSession")
+                        .WithMany("Orders")
+                        .HasForeignKey("PosSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("LinkedOrder");
+
+                    b.Navigation("PosSession");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PosOrderItem", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.PosOrder", "PosOrder")
+                        .WithMany("Items")
+                        .HasForeignKey("PosOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PosOrder");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PosSession", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.User", "Cashier")
+                        .WithMany()
+                        .HasForeignKey("CashierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Cashier");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.Product", b =>
                 {
                     b.HasOne("EcomPlatform.Core.Entities.Category", "Category")
@@ -2262,6 +4037,29 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.ProductReview", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId");
+
+                    b.HasOne("EcomPlatform.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.RefreshToken", b =>
                 {
                     b.HasOne("EcomPlatform.Core.Entities.User", "User")
@@ -2271,6 +4069,58 @@ namespace EcomPlatform.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.ReturnItem", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.OrderItem", "OrderItem")
+                        .WithMany()
+                        .HasForeignKey("OrderItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.ReturnRequest", "ReturnRequest")
+                        .WithMany("Items")
+                        .HasForeignKey("ReturnRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OrderItem");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ReturnRequest");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.ReturnRequest", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.User", "ReviewedBy")
+                        .WithMany()
+                        .HasForeignKey("ReviewedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Order");
+
+                    b.Navigation("ReviewedBy");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.Setting", b =>
@@ -2302,6 +4152,53 @@ namespace EcomPlatform.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.StockMovement", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EcomPlatform.Core.Entities.Warehouse", "FromWarehouse")
+                        .WithMany()
+                        .HasForeignKey("FromWarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EcomPlatform.Core.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("EcomPlatform.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EcomPlatform.Core.Entities.Warehouse", "Warehouse")
+                        .WithMany("StockMovements")
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("FromWarehouse");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.StoreIntegration", b =>
@@ -2417,6 +4314,16 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.Warehouse", b =>
+                {
+                    b.HasOne("EcomPlatform.Core.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.WebhookEvent", b =>
                 {
                     b.HasOne("EcomPlatform.Core.Entities.StoreIntegration", "StoreIntegration")
@@ -2435,6 +4342,13 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.Campaign", b =>
+                {
+                    b.Navigation("MailingLists");
+
+                    b.Navigation("Recipients");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.Category", b =>
                 {
                     b.Navigation("Children");
@@ -2442,9 +4356,21 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Navigation("Products");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.ChartOfAccount", b =>
+                {
+                    b.Navigation("Children");
+
+                    b.Navigation("Lines");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.Customer", b =>
                 {
                     b.Navigation("Addresses");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.HelpCategory", b =>
+                {
+                    b.Navigation("Articles");
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.Invoice", b =>
@@ -2452,9 +4378,28 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Navigation("Items");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.JournalEntry", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.MailingList", b =>
+                {
+                    b.Navigation("Campaigns");
+
+                    b.Navigation("Subscribers");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.Order", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PaymentLink", b =>
+                {
+                    b.Navigation("Items");
+
+                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.Plan", b =>
@@ -2462,9 +4407,24 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Navigation("Subscriptions");
                 });
 
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PosOrder", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.PosSession", b =>
+                {
+                    b.Navigation("Orders");
+                });
+
             modelBuilder.Entity("EcomPlatform.Core.Entities.Product", b =>
                 {
                     b.Navigation("Images");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.ReturnRequest", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("EcomPlatform.Core.Entities.ShippingZone", b =>
@@ -2498,6 +4458,11 @@ namespace EcomPlatform.Infrastructure.Migrations
                     b.Navigation("Profile");
 
                     b.Navigation("RefreshTokens");
+                });
+
+            modelBuilder.Entity("EcomPlatform.Core.Entities.Warehouse", b =>
+                {
+                    b.Navigation("StockMovements");
                 });
 #pragma warning restore 612, 618
         }

@@ -43,6 +43,7 @@ using EcomPlatform.Shared.Settings;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -371,6 +372,17 @@ builder.Services.AddScoped<NoonWebhookProcessor>();
 builder.Services.AddScoped<AliExpressWebhookProcessor>();
 // Google Shopping
 builder.Services.AddScoped<GoogleShoppingWebhookProcessor>();
+/////
+builder.Services.AddScoped<IPaymentLinkService, PaymentLinkService>();
+builder.Services.AddScoped<IReturnService, ReturnService>();
+builder.Services.AddScoped<IPosService, PosService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<ILoyaltyService, LoyaltyService>();
+builder.Services.AddScoped<IEmailMarketingService, EmailMarketingService>();
+builder.Services.AddScoped<IAccountingService, AccountingService>();
+builder.Services.AddScoped<IHelpCenterService, HelpCenterService>();
+builder.Services.AddScoped<ITaxReportService, TaxReportService>();
+builder.Services.AddScoped<IExportReportService, ExportReportService>();
 
 // ── Background Jobs ───────────────────────────────────────────────────────
 builder.Services.AddHostedService<BackgroundSyncJob>();
