@@ -229,6 +229,35 @@ namespace EcomPlatform.Infrastructure.Data
                     (!_tenantProvider.TenantId.HasValue ||
                      x.TenantId == _tenantProvider.TenantId));
 
+            // ── Payment Links ─────────────────────────────────────────────────
+            modelBuilder.Entity<PaymentLink>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<PaymentLinkTransaction>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            // ── Accounting ────────────────────────────────────────────────────
+            modelBuilder.Entity<ChartOfAccount>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<JournalEntry>()
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
+
+            modelBuilder.Entity<JournalEntryLine>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
             // ================================================================
             // Global entities (IsDeleted only)
             // ================================================================
@@ -274,7 +303,10 @@ namespace EcomPlatform.Infrastructure.Data
                 .HasQueryFilter(x => !x.IsDeleted);
 
             modelBuilder.Entity<ReturnRequest>()
-                .HasQueryFilter(x => !x.IsDeleted);
+                .HasQueryFilter(x =>
+                    !x.IsDeleted &&
+                    (!_tenantProvider.TenantId.HasValue ||
+                     x.TenantId == _tenantProvider.TenantId));
 
             // ── Warehouse & StockMovement ─────────────────────────────────────
             modelBuilder.Entity<Warehouse>()
@@ -314,7 +346,6 @@ namespace EcomPlatform.Infrastructure.Data
                 .HasQueryFilter(x => !x.IsDeleted &&
                     (!_tenantProvider.TenantId.HasValue || x.TenantId == _tenantProvider.TenantId));
 
-            // ✅ Fix: matching filters for Campaign children
             modelBuilder.Entity<CampaignMailingList>()
                 .HasQueryFilter(x => !x.IsDeleted);
 
@@ -349,6 +380,13 @@ namespace EcomPlatform.Infrastructure.Data
         {
             foreach (var entry in ChangeTracker.Entries<BaseEntity>())
             {
+                // ✅ FIX: سيت UpdatedAt عند الإنشاء كمان مش بس التعديل
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
+                    entry.Entity.UpdatedAt = DateTime.UtcNow;
+                }
+
                 if (entry.State == EntityState.Modified)
                 {
                     entry.Entity.UpdatedAt = DateTime.UtcNow;

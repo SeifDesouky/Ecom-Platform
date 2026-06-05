@@ -83,6 +83,7 @@ namespace EcomPlatform.API.Controllers
         }
 
         // TenantAdmin وفوق — initialize default settings لـ tenant جديد
+        [HttpPost("{tenantId}/initialize")]
         [HttpPost("initialize/{tenantId}")]
         [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> Initialize(Guid tenantId)

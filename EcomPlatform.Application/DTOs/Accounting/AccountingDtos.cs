@@ -26,8 +26,15 @@ namespace EcomPlatform.Application.DTOs.Accounting
 
         public Guid? ParentId { get; set; }
 
-        [Required]
-        public Guid TenantId { get; set; }
+        public Guid TenantId { get; set; } // ← شيلنا [Required] عشان بنجيبه من الـ JWT
+    }
+
+    public class UpdateAccountDto
+    {
+        [Required, MaxLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        public string? NameEn { get; set; }
     }
 
     public class AccountResponseDto
@@ -45,7 +52,7 @@ namespace EcomPlatform.Application.DTOs.Accounting
         public bool IsSystem { get; set; }
         public Guid? ParentId { get; set; }
         public string? ParentName { get; set; }
-        public decimal Balance { get; set; }   // الرصيد الحالي
+        public decimal Balance { get; set; }
         public List<AccountResponseDto> Children { get; set; } = new();
     }
 
@@ -148,7 +155,7 @@ namespace EcomPlatform.Application.DTOs.Accounting
         public AccountType AccountType { get; set; }
         public decimal TotalDebit { get; set; }
         public decimal TotalCredit { get; set; }
-        public decimal Balance { get; set; }   // Debit - Credit
+        public decimal Balance { get; set; }
     }
 
     // ── Profit & Loss ──────────────────────────────────────────────────────
@@ -165,7 +172,7 @@ namespace EcomPlatform.Application.DTOs.Accounting
         public decimal TotalExpenses { get; set; }
         public decimal GrossProfit { get; set; }
         public decimal NetProfit { get; set; }
-        public decimal NetProfitMargin { get; set; }   // نسبة مئوية
+        public decimal NetProfitMargin { get; set; }
     }
 
     public class PLSectionDto

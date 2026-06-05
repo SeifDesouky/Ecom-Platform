@@ -9,6 +9,7 @@ namespace EcomPlatform.Application.Services.Interfaces
         Task<ApiResponse<List<AccountResponseDto>>> GetChartOfAccountsAsync(Guid tenantId);
         Task<ApiResponse<AccountResponseDto>> GetAccountByIdAsync(Guid id);
         Task<ApiResponse<AccountResponseDto>> CreateAccountAsync(CreateAccountDto dto);
+        Task<ApiResponse<AccountResponseDto>> UpdateAccountAsync(Guid id, UpdateAccountDto dto);
         Task<ApiResponse<bool>> ToggleAccountStatusAsync(Guid id);
 
         /// <summary>هيئ الحسابات الافتراضية لـ tenant جديد</summary>
@@ -20,7 +21,7 @@ namespace EcomPlatform.Application.Services.Interfaces
         Task<ApiResponse<PagedResponse<JournalEntryResponseDto>>> GetEntriesByTenantAsync(
             Guid tenantId, PaginationParams pagination, DateTime? from = null, DateTime? to = null);
 
-        Task<ApiResponse<bool>> PostEntryAsync(Guid id);       // Draft → Posted
+        Task<ApiResponse<bool>> PostEntryAsync(Guid id);
         Task<ApiResponse<bool>> ReverseEntryAsync(Guid id, Guid reversedById);
 
         // ── Auto-Journal Triggers ─────────────────────────────────────────

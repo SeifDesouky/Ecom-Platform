@@ -37,7 +37,25 @@ namespace EcomPlatform.API.Controllers
         public async Task<IActionResult> CreateAccount([FromBody] CreateAccountDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            // جيب TenantId من الـ header أو JWT بدل ما تأخده من الـ body
+            var tenantValue = HttpContext.Request.Headers["X-Tenant-ID"].FirstOrDefault()
+                           ?? User.FindFirst("tenantId")?.Value;
+
+            if (string.IsNullOrEmpty(tenantValue) || !Guid.TryParse(tenantValue, out var tenantId))
+                return Unauthorized();
+
+            dto.TenantId = tenantId;
+
             var result = await _accountingService.CreateAccountAsync(dto);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        [HttpPatch("accounts/{id:guid}")]
+        public async Task<IActionResult> UpdateAccount(Guid id, [FromBody] UpdateAccountDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _accountingService.UpdateAccountAsync(id, dto);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 

@@ -27,6 +27,7 @@
 		<ProjectReference Include="..\EcomPlatform.Application\EcomPlatform.Application.csproj" />
 		<ProjectReference Include="..\EcomPlatform.Core\EcomPlatform.Core.csproj" />
 		<ProjectReference Include="..\EcomPlatform.Shared\EcomPlatform.Shared.csproj" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.1.0" />
 	</ItemGroup>
 
 </Project>

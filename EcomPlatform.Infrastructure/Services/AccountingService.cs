@@ -12,7 +12,6 @@ namespace EcomPlatform.Infrastructure.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditLogService _auditLogService;
 
-        // ── كودات الحسابات الافتراضية ─────────────────────────────────────
         private const string CASH = "1100";
         private const string ACCOUNTS_RECEIVABLE = "1200";
         private const string INVENTORY = "1300";
@@ -94,6 +93,23 @@ namespace EcomPlatform.Infrastructure.Services
                 "Account created");
         }
 
+        public async Task<ApiResponse<AccountResponseDto>> UpdateAccountAsync(Guid id, UpdateAccountDto dto)
+        {
+            var account = await _unitOfWork.ChartOfAccounts.GetByIdAsync(id);
+            if (account == null) return ApiResponse<AccountResponseDto>.Fail("Account not found");
+
+            account.Name = dto.Name;
+            account.NameEn = dto.NameEn;
+            account.UpdatedAt = DateTime.UtcNow;
+
+            await _unitOfWork.ChartOfAccounts.UpdateAsync(account);
+            await _unitOfWork.SaveChangesAsync();
+
+            var balances = await GetAccountBalancesAsync(account.TenantId ?? Guid.Empty);
+            var all = await _unitOfWork.ChartOfAccounts.FindAsync(a => a.TenantId == account.TenantId);
+            return ApiResponse<AccountResponseDto>.Ok(MapAccount(account, all.ToList(), balances), "Account updated");
+        }
+
         public async Task<ApiResponse<bool>> ToggleAccountStatusAsync(Guid id)
         {
             var account = await _unitOfWork.ChartOfAccounts.GetByIdAsync(id);
@@ -115,38 +131,28 @@ namespace EcomPlatform.Infrastructure.Services
         public async Task InitializeDefaultAccountsAsync(Guid tenantId)
         {
             var existing = await _unitOfWork.ChartOfAccounts.FindAsync(a => a.TenantId == tenantId);
-            if (existing.Any()) return;  // مهيّأة مسبقاً
+            if (existing.Any()) return;
 
             var defaults = new List<ChartOfAccount>
             {
-                // ── Assets (1xxx) ──────────────────────────────────────────
                 new() { Code = "1000", Name = "الأصول",           NameEn = "Assets",             Type = AccountType.Asset,     Nature = AccountNature.Debit,  IsSystem = true, TenantId = tenantId },
                 new() { Code = CASH,   Name = "الصندوق والبنك",   NameEn = "Cash & Bank",         Type = AccountType.Asset,     Nature = AccountNature.Debit,  IsSystem = true, TenantId = tenantId },
                 new() { Code = ACCOUNTS_RECEIVABLE, Name = "المدينون", NameEn = "Accounts Receivable", Type = AccountType.Asset, Nature = AccountNature.Debit, IsSystem = true, TenantId = tenantId },
                 new() { Code = INVENTORY, Name = "المخزون",       NameEn = "Inventory",           Type = AccountType.Asset,     Nature = AccountNature.Debit,  IsSystem = true, TenantId = tenantId },
-
-                // ── Liabilities (2xxx) ─────────────────────────────────────
                 new() { Code = "2000", Name = "الالتزامات",       NameEn = "Liabilities",         Type = AccountType.Liability, Nature = AccountNature.Credit, IsSystem = true, TenantId = tenantId },
                 new() { Code = ACCOUNTS_PAYABLE, Name = "الدائنون", NameEn = "Accounts Payable",  Type = AccountType.Liability, Nature = AccountNature.Credit, IsSystem = true, TenantId = tenantId },
-
-                // ── Equity (3xxx) ──────────────────────────────────────────
                 new() { Code = "3000", Name = "حقوق الملكية",     NameEn = "Equity",              Type = AccountType.Equity,    Nature = AccountNature.Credit, IsSystem = true, TenantId = tenantId },
                 new() { Code = OWNER_EQUITY,     Name = "رأس المال",     NameEn = "Owner Equity",   Type = AccountType.Equity,    Nature = AccountNature.Credit, IsSystem = true, TenantId = tenantId },
                 new() { Code = RETAINED_EARNINGS, Name = "الأرباح المحتجزة", NameEn = "Retained Earnings", Type = AccountType.Equity, Nature = AccountNature.Credit, IsSystem = true, TenantId = tenantId },
-
-                // ── Revenue (4xxx) ─────────────────────────────────────────
                 new() { Code = "4000", Name = "الإيرادات",        NameEn = "Revenue",             Type = AccountType.Revenue,   Nature = AccountNature.Credit, IsSystem = true, TenantId = tenantId },
                 new() { Code = SALES_REVENUE,   Name = "إيرادات المبيعات", NameEn = "Sales Revenue", Type = AccountType.Revenue, Nature = AccountNature.Credit, IsSystem = true, TenantId = tenantId },
                 new() { Code = SUBSCRIPTION_REV, Name = "إيرادات الاشتراكات", NameEn = "Subscription Revenue", Type = AccountType.Revenue, Nature = AccountNature.Credit, IsSystem = true, TenantId = tenantId },
                 new() { Code = REFUNDS_EXPENSE, Name = "مصاريف المرتجعات", NameEn = "Refund Expenses", Type = AccountType.Revenue, Nature = AccountNature.Debit, IsSystem = true, TenantId = tenantId },
-
-                // ── Expenses (5xxx) ────────────────────────────────────────
                 new() { Code = "5000", Name = "المصاريف",         NameEn = "Expenses",            Type = AccountType.Expense,   Nature = AccountNature.Debit,  IsSystem = true, TenantId = tenantId },
                 new() { Code = COGS,   Name = "تكلفة المبيعات",  NameEn = "Cost of Goods Sold",  Type = AccountType.Expense,   Nature = AccountNature.Debit,  IsSystem = true, TenantId = tenantId },
                 new() { Code = STOCK_LOSS, Name = "خسائر المخزون", NameEn = "Inventory Loss",    Type = AccountType.Expense,   Nature = AccountNature.Debit,  IsSystem = true, TenantId = tenantId },
             };
 
-            // ربط الحسابات الفرعية بالآباء
             var parentMap = new Dictionary<string, string>
             {
                 [CASH] = "1000",
@@ -167,7 +173,6 @@ namespace EcomPlatform.Infrastructure.Services
 
             await _unitOfWork.SaveChangesAsync();
 
-            // ربط الآباء بعد الحفظ
             var saved = await _unitOfWork.ChartOfAccounts.FindAsync(a => a.TenantId == tenantId);
             var codeMap = saved.ToDictionary(a => a.Code);
 
@@ -281,7 +286,6 @@ namespace EcomPlatform.Infrastructure.Services
 
             await LoadEntryNavigationsAsync(entry);
 
-            // إنشاء قيد عكسي
             var reversal = new JournalEntry
             {
                 EntryNumber = await GenerateEntryNumberAsync(),
@@ -307,7 +311,7 @@ namespace EcomPlatform.Infrastructure.Services
                     AccountId = line.AccountId,
                     AccountCode = line.AccountCode,
                     AccountName = line.AccountName,
-                    Debit = line.Credit,   // قلب المدين/الدائن
+                    Debit = line.Credit,
                     Credit = line.Debit,
                     Description = $"عكس: {line.Description}"
                 });
@@ -331,7 +335,6 @@ namespace EcomPlatform.Infrastructure.Services
             var invoice = await _unitOfWork.Invoices.GetByIdAsync(invoiceId);
             if (invoice == null) return;
 
-            // مدين: الصندوق والبنك | دائن: إيرادات المبيعات
             await CreateAutoEntryAsync(tenantId,
                 description: $"فاتورة مدفوعة #{invoice.InvoiceNumber}",
                 source: JournalEntrySource.Invoice,
@@ -359,8 +362,7 @@ namespace EcomPlatform.Infrastructure.Services
 
         public async Task CreateRefundEntryAsync(Guid returnRequestId, Guid tenantId)
         {
-            var accounts = await _unitOfWork.ChartOfAccounts.FindAsync(
-                a => a.TenantId == tenantId);
+            var accounts = await _unitOfWork.ChartOfAccounts.FindAsync(a => a.TenantId == tenantId);
             var accountMap = accounts.ToDictionary(a => a.Code);
 
             if (!accountMap.TryGetValue(REFUNDS_EXPENSE, out var debitAcc) ||
@@ -369,7 +371,6 @@ namespace EcomPlatform.Infrastructure.Services
             var returnItems = await _unitOfWork.ReturnRequests.GetByIdAsync(returnRequestId);
             if (returnItems == null) return;
 
-            // مدين: مصاريف المرتجعات | دائن: الصندوق
             await CreateAutoEntryAsync(tenantId,
                 description: $"مرتجع #{returnItems.ReturnNumber}",
                 source: JournalEntrySource.Refund,
@@ -393,25 +394,19 @@ namespace EcomPlatform.Infrastructure.Services
             switch (movement.Type)
             {
                 case StockMovementType.Purchase:
-                    // مدين: المخزون | دائن: الدائنون
-                    debitCode = INVENTORY;
-                    creditCode = ACCOUNTS_PAYABLE;
+                    debitCode = INVENTORY; creditCode = ACCOUNTS_PAYABLE;
                     description = $"استلام مخزون — {movement.Reference}";
                     break;
                 case StockMovementType.Sale:
-                    // مدين: تكلفة المبيعات | دائن: المخزون
-                    debitCode = COGS;
-                    creditCode = INVENTORY;
+                    debitCode = COGS; creditCode = INVENTORY;
                     description = $"تكلفة مبيعات — {movement.Reference}";
                     break;
                 case StockMovementType.Damage:
-                    // مدين: خسائر المخزون | دائن: المخزون
-                    debitCode = STOCK_LOSS;
-                    creditCode = INVENTORY;
+                    debitCode = STOCK_LOSS; creditCode = INVENTORY;
                     description = $"خسارة مخزون — {movement.Reference}";
                     break;
                 default:
-                    return;   // Transfer، Adjustment، Return — لا تولد قيد تلقائي
+                    return;
             }
 
             await CreateAutoEntryAsync(tenantId, description,
@@ -445,13 +440,11 @@ namespace EcomPlatform.Infrastructure.Services
             var accounts = await _unitOfWork.ChartOfAccounts.FindAsync(a => a.TenantId == filter.TenantId);
 
             var lines = accounts
-                .Where(a => a.ParentId != null)  // الحسابات الفرعية فقط
+                .Where(a => a.ParentId != null)
                 .Select(account =>
                 {
-                    var accountLines = entries
-                        .SelectMany(e => e.Lines)
-                        .Where(l => l.AccountId == account.Id)
-                        .ToList();
+                    var accountLines = entries.SelectMany(e => e.Lines)
+                        .Where(l => l.AccountId == account.Id).ToList();
 
                     return new TrialBalanceLineDto
                     {
@@ -467,61 +460,42 @@ namespace EcomPlatform.Infrastructure.Services
                 .OrderBy(l => l.AccountCode)
                 .ToList();
 
-            var result = new TrialBalanceDto
+            return ApiResponse<TrialBalanceDto>.Ok(new TrialBalanceDto
             {
                 FromDate = filter.FromDate,
                 ToDate = filter.ToDate,
                 Lines = lines,
                 TotalDebit = lines.Sum(l => l.TotalDebit),
                 TotalCredit = lines.Sum(l => l.TotalCredit)
-            };
-
-            return ApiResponse<TrialBalanceDto>.Ok(result);
+            });
         }
 
         public async Task<ApiResponse<ProfitAndLossDto>> GetProfitAndLossAsync(ReportFilterDto filter)
         {
             var entries = await GetPostedEntriesInRangeAsync(filter);
             var accounts = await _unitOfWork.ChartOfAccounts.FindAsync(a => a.TenantId == filter.TenantId);
-            var accountMap = accounts.ToDictionary(a => a.Id);
 
-            decimal GetNetBalance(AccountType type)
-            {
-                return entries.SelectMany(e => e.Lines)
-                    .Where(l => accountMap.TryGetValue(l.AccountId, out var acc) && acc.Type == type)
-                    .Sum(l => l.Credit - l.Debit);
-            }
-
-            List<PLSectionDto> GetSection(AccountType type)
-            {
-                return accounts
-                    .Where(a => a.Type == type && a.ParentId != null)
-                    .Select(acc =>
+            List<PLSectionDto> GetSection(AccountType type) =>
+                accounts.Where(a => a.Type == type && a.ParentId != null)
+                    .Select(acc => new PLSectionDto
                     {
-                        var total = entries.SelectMany(e => e.Lines)
+                        AccountCode = acc.Code,
+                        AccountName = acc.Name,
+                        Amount = entries.SelectMany(e => e.Lines)
                             .Where(l => l.AccountId == acc.Id)
-                            .Sum(l => type == AccountType.Revenue ? l.Credit - l.Debit : l.Debit - l.Credit);
-
-                        return new PLSectionDto
-                        {
-                            AccountCode = acc.Code,
-                            AccountName = acc.Name,
-                            Amount = total
-                        };
+                            .Sum(l => type == AccountType.Revenue ? l.Credit - l.Debit : l.Debit - l.Credit)
                     })
                     .Where(s => s.Amount != 0)
                     .OrderBy(s => s.AccountCode)
                     .ToList();
-            }
 
             var revenue = GetSection(AccountType.Revenue);
             var expenses = GetSection(AccountType.Expense);
-
             decimal totalRev = revenue.Sum(r => r.Amount);
             decimal totalExp = expenses.Sum(e => e.Amount);
             decimal netProfit = totalRev - totalExp;
 
-            var result = new ProfitAndLossDto
+            return ApiResponse<ProfitAndLossDto>.Ok(new ProfitAndLossDto
             {
                 FromDate = filter.FromDate,
                 ToDate = filter.ToDate,
@@ -532,14 +506,11 @@ namespace EcomPlatform.Infrastructure.Services
                 GrossProfit = totalRev,
                 NetProfit = netProfit,
                 NetProfitMargin = totalRev > 0 ? Math.Round(netProfit / totalRev * 100, 2) : 0
-            };
-
-            return ApiResponse<ProfitAndLossDto>.Ok(result);
+            });
         }
 
         public async Task<ApiResponse<BalanceSheetDto>> GetBalanceSheetAsync(ReportFilterDto filter)
         {
-            // Balance Sheet = كل القيود من البداية حتى ToDate
             var allEntries = await _unitOfWork.JournalEntries.FindAsync(
                 e => e.TenantId == filter.TenantId &&
                      e.Status == JournalEntryStatus.Posted &&
@@ -549,37 +520,28 @@ namespace EcomPlatform.Infrastructure.Services
                 e.Lines = (await _unitOfWork.JournalEntryLines.FindAsync(l => l.JournalEntryId == e.Id)).ToList();
 
             var accounts = await _unitOfWork.ChartOfAccounts.FindAsync(a => a.TenantId == filter.TenantId);
-            var accountMap = accounts.ToDictionary(a => a.Id);
 
-            List<BSLineDto> GetSection(AccountType type)
-            {
-                return accounts
-                    .Where(a => a.Type == type && a.ParentId != null)
-                    .Select(acc =>
+            List<BSLineDto> GetSection(AccountType type) =>
+                accounts.Where(a => a.Type == type && a.ParentId != null)
+                    .Select(acc => new BSLineDto
                     {
-                        var balance = allEntries.SelectMany(e => e.Lines)
+                        AccountCode = acc.Code,
+                        AccountName = acc.Name,
+                        Balance = allEntries.SelectMany(e => e.Lines)
                             .Where(l => l.AccountId == acc.Id)
                             .Sum(l => acc.Nature == AccountNature.Debit
                                 ? l.Debit - l.Credit
-                                : l.Credit - l.Debit);
-
-                        return new BSLineDto
-                        {
-                            AccountCode = acc.Code,
-                            AccountName = acc.Name,
-                            Balance = balance
-                        };
+                                : l.Credit - l.Debit)
                     })
                     .Where(s => s.Balance != 0)
                     .OrderBy(s => s.AccountCode)
                     .ToList();
-            }
 
             var assets = GetSection(AccountType.Asset);
             var liabilities = GetSection(AccountType.Liability);
             var equity = GetSection(AccountType.Equity);
 
-            var result = new BalanceSheetDto
+            return ApiResponse<BalanceSheetDto>.Ok(new BalanceSheetDto
             {
                 AsOfDate = filter.ToDate,
                 Assets = assets,
@@ -588,9 +550,7 @@ namespace EcomPlatform.Infrastructure.Services
                 TotalAssets = assets.Sum(a => a.Balance),
                 TotalLiabilities = liabilities.Sum(l => l.Balance),
                 TotalEquity = equity.Sum(e => e.Balance)
-            };
-
-            return ApiResponse<BalanceSheetDto>.Ok(result);
+            });
         }
 
         public async Task<ApiResponse<CashFlowDto>> GetCashFlowAsync(ReportFilterDto filter)
@@ -601,24 +561,19 @@ namespace EcomPlatform.Infrastructure.Services
             if (cashAccount == null)
                 return ApiResponse<CashFlowDto>.Fail("Cash account not found");
 
-            // كل القيود على حساب الصندوق في الفترة
-            var allLines = await _unitOfWork.JournalEntryLines.FindAsync(
-                l => l.AccountId == cashAccount.Id);
-
+            var allLines = await _unitOfWork.JournalEntryLines.FindAsync(l => l.AccountId == cashAccount.Id);
             var entries = await _unitOfWork.JournalEntries.FindAsync(
                 e => e.TenantId == filter.TenantId && e.Status == JournalEntryStatus.Posted);
-
             var entryMap = entries.ToDictionary(e => e.Id);
-            var inRange = allLines.Where(l => entryMap.TryGetValue(l.JournalEntryId, out var e) &&
-                                                 e.EntryDate >= filter.FromDate &&
-                                                 e.EntryDate <= filter.ToDate).ToList();
 
-            // Opening Balance = كل القيود قبل FromDate
+            var inRange = allLines.Where(l => entryMap.TryGetValue(l.JournalEntryId, out var e) &&
+                                              e.EntryDate >= filter.FromDate &&
+                                              e.EntryDate <= filter.ToDate).ToList();
+
             var beforeRange = allLines.Where(l => entryMap.TryGetValue(l.JournalEntryId, out var e) &&
-                                                   e.EntryDate < filter.FromDate).ToList();
+                                                  e.EntryDate < filter.FromDate).ToList();
             decimal openingBalance = beforeRange.Sum(l => l.Debit - l.Credit);
 
-            // تصنيف حسب مصدر القيد
             var operatingLines = new List<CashFlowLineDto>();
             var investingLines = new List<CashFlowLineDto>();
             var financingLines = new List<CashFlowLineDto>();
@@ -626,30 +581,20 @@ namespace EcomPlatform.Infrastructure.Services
             foreach (var line in inRange)
             {
                 if (!entryMap.TryGetValue(line.JournalEntryId, out var entry)) continue;
-                decimal amount = line.Debit - line.Credit;
-
-                var flowLine = new CashFlowLineDto
-                {
-                    Description = entry.Description,
-                    Amount = amount
-                };
+                var flowLine = new CashFlowLineDto { Description = entry.Description, Amount = line.Debit - line.Credit };
 
                 switch (entry.Source)
                 {
                     case JournalEntrySource.Invoice:
                     case JournalEntrySource.Order:
                     case JournalEntrySource.Refund:
-                        operatingLines.Add(flowLine);
-                        break;
+                        operatingLines.Add(flowLine); break;
                     case JournalEntrySource.StockMovement:
-                        investingLines.Add(flowLine);
-                        break;
+                        investingLines.Add(flowLine); break;
                     case JournalEntrySource.Subscription:
-                        financingLines.Add(flowLine);
-                        break;
+                        financingLines.Add(flowLine); break;
                     default:
-                        operatingLines.Add(flowLine);
-                        break;
+                        operatingLines.Add(flowLine); break;
                 }
             }
 
@@ -658,7 +603,7 @@ namespace EcomPlatform.Infrastructure.Services
             decimal financing = financingLines.Sum(l => l.Amount);
             decimal netCash = operating + investing + financing;
 
-            var result = new CashFlowDto
+            return ApiResponse<CashFlowDto>.Ok(new CashFlowDto
             {
                 FromDate = filter.FromDate,
                 ToDate = filter.ToDate,
@@ -671,9 +616,7 @@ namespace EcomPlatform.Infrastructure.Services
                 OperatingLines = operatingLines,
                 InvestingLines = investingLines,
                 FinancingLines = financingLines
-            };
-
-            return ApiResponse<CashFlowDto>.Ok(result);
+            });
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -700,7 +643,7 @@ namespace EcomPlatform.Infrastructure.Services
                 EntryDate = DateTime.UtcNow,
                 Description = description,
                 Source = source,
-                Status = JournalEntryStatus.Posted,   // Auto-entries مباشرة Posted
+                Status = JournalEntryStatus.Posted,
                 ReferenceId = referenceId,
                 ReferenceNumber = referenceNumber,
                 TotalDebit = amount,
@@ -751,32 +694,32 @@ namespace EcomPlatform.Infrastructure.Services
 
         private async Task<Dictionary<Guid, decimal>> GetAccountBalancesAsync(Guid tenantId)
         {
-            var lines = await _unitOfWork.JournalEntryLines.FindAsync(l => true);
             var entries = await _unitOfWork.JournalEntries.FindAsync(
                 e => e.TenantId == tenantId && e.Status == JournalEntryStatus.Posted);
             var entryIds = entries.Select(e => e.Id).ToHashSet();
 
+            if (!entryIds.Any())
+                return new Dictionary<Guid, decimal>();
+
+            var lines = await _unitOfWork.JournalEntryLines.FindAsync(
+                l => entryIds.Contains(l.JournalEntryId));
+
             return lines
-                .Where(l => entryIds.Contains(l.JournalEntryId))
                 .GroupBy(l => l.AccountId)
                 .ToDictionary(g => g.Key, g => g.Sum(l => l.Debit - l.Credit));
         }
 
-        private static (bool IsValid, string Error) ValidateDoubleEntry(
-            List<CreateJournalEntryLineDto> lines)
+        private static (bool IsValid, string Error) ValidateDoubleEntry(List<CreateJournalEntryLineDto> lines)
         {
             if (lines.Count < 2)
                 return (false, "Journal entry must have at least 2 lines");
-
             if (lines.Any(l => l.Debit < 0 || l.Credit < 0))
                 return (false, "Debit and Credit amounts cannot be negative");
-
             if (lines.Any(l => l.Debit > 0 && l.Credit > 0))
                 return (false, "A single line cannot have both Debit and Credit amounts");
 
             decimal totalDebit = lines.Sum(l => l.Debit);
             decimal totalCredit = lines.Sum(l => l.Credit);
-
             if (Math.Abs(totalDebit - totalCredit) > 0.001m)
                 return (false, $"Total Debit ({totalDebit:N2}) must equal Total Credit ({totalCredit:N2})");
 

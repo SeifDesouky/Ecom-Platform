@@ -475,6 +475,9 @@ namespace EcomPlatform.Infrastructure.Services
             ReturnNumber = r.ReturnNumber,
             OrderId = r.OrderId,
             OrderNumber = r.Order?.OrderNumber ?? string.Empty,
+            CustomerName = r.Order?.CustomerName ?? string.Empty,
+            CustomerEmail = r.Order?.CustomerEmail ?? string.Empty,
+            CustomerPhone = r.Order?.CustomerPhone ?? string.Empty,
             Initiator = r.Initiator,
             InitiatorName = r.Initiator.ToString(),
             Reason = r.Reason,
@@ -492,8 +495,8 @@ namespace EcomPlatform.Infrastructure.Services
             RefundNote = r.RefundNote,
             StockRestored = r.StockRestored,
             ReviewedByName = r.ReviewedBy != null
-                                ? $"{r.ReviewedBy.FirstName} {r.ReviewedBy.LastName}".Trim()
-                                : string.Empty,
+                        ? $"{r.ReviewedBy.FirstName} {r.ReviewedBy.LastName}".Trim()
+                        : string.Empty,
             ReviewedAt = r.ReviewedAt,
             TenantId = r.TenantId,
             CreatedAt = r.CreatedAt,

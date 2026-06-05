@@ -1,3 +1,4 @@
+using EcomPlatform.API.Hubs;
 using Asp.Versioning;
 using EcomPlatform.API.Extensions;
 using EcomPlatform.API.Middlewares;
@@ -214,8 +215,17 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials(); // مطلوب لـ SignalR
     });
+});
+
+// ── SignalR ────────────────────────────────────────────────────────────────
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
 });
 
 builder.Services
@@ -238,6 +248,7 @@ builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<IShippingService, ShippingService>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IRealtimeNotificationService, RealtimeNotificationService>();
 builder.Services.AddScoped<ISettingService, SettingService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITenantDomainService, TenantDomainService>();
@@ -383,6 +394,7 @@ builder.Services.AddScoped<IAccountingService, AccountingService>();
 builder.Services.AddScoped<IHelpCenterService, HelpCenterService>();
 builder.Services.AddScoped<ITaxReportService, TaxReportService>();
 builder.Services.AddScoped<IExportReportService, ExportReportService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
 
 // ── Background Jobs ───────────────────────────────────────────────────────
 builder.Services.AddHostedService<BackgroundSyncJob>();
@@ -432,6 +444,9 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 });
 
 app.MapControllers();
+
+// ── SignalR Hub ────────────────────────────────────────────────────────────
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 using (var scope = app.Services.CreateScope())
 {

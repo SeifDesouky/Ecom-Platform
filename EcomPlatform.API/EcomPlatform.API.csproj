@@ -30,4 +30,8 @@
 		<ProjectReference Include="..\EcomPlatform.Shared\EcomPlatform.Shared.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Hubs\" />
+	</ItemGroup>
+
 </Project>

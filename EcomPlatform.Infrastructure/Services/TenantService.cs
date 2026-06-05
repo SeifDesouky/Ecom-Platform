@@ -130,8 +130,9 @@ namespace EcomPlatform.Infrastructure.Services
             SubscriptionEndDate = tenant.SubscriptionEndDate,
             CreatedAt = tenant.CreatedAt,
             UsersCount = tenant.Users?.Count ?? 0,
-            VatNumber = tenant.VatNumber,   // ضيف ده
-            VatRate = tenant.VatRate        // ضيف ده
+            VatNumber = tenant.VatNumber,
+            VatRate = tenant.VatRate,
+            StoreStatus = tenant.Status.ToString()
         };
     }
 }

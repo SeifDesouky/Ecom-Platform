@@ -18,5 +18,6 @@ namespace EcomPlatform.Application.DTOs.Tenants
         public int UsersCount { get; set; }
         public string? VatNumber { get; set; }
         public decimal VatRate { get; set; }
+        public string StoreStatus { get; set; } = string.Empty;
     }
 }

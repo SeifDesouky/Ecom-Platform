@@ -3,10 +3,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EcomPlatform.Application.DTOs.Returns
 {
-    // ══════════════════════════════════════════════════════════════════════
-    // REQUEST
-    // ══════════════════════════════════════════════════════════════════════
-
     public class CreateReturnRequestDto
     {
         [Required]
@@ -42,7 +38,6 @@ namespace EcomPlatform.Application.DTOs.Returns
 
         public string Note { get; set; } = string.Empty;
 
-        /// <summary>لو Approved — تحديد الكميات المعتمدة لكل منتج</summary>
         public List<ApproveReturnItemDto> ApprovedItems { get; set; } = new();
 
         [Required]
@@ -66,7 +61,6 @@ namespace EcomPlatform.Application.DTOs.Returns
         [Required]
         public RefundMethod Method { get; set; }
 
-        /// <summary>لو Gateway — transaction ID من البوابة</summary>
         public string GatewayTransactionId { get; set; } = string.Empty;
 
         public string Note { get; set; } = string.Empty;
@@ -75,16 +69,17 @@ namespace EcomPlatform.Application.DTOs.Returns
         public Guid ProcessedById { get; set; }
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    // RESPONSE
-    // ══════════════════════════════════════════════════════════════════════
-
     public class ReturnRequestResponseDto
     {
         public Guid Id { get; set; }
         public string ReturnNumber { get; set; } = string.Empty;
         public Guid OrderId { get; set; }
         public string OrderNumber { get; set; } = string.Empty;
+
+        // ── بيانات العميل ─────────────────────────────────────────────────
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerEmail { get; set; } = string.Empty;
+        public string CustomerPhone { get; set; } = string.Empty;
 
         public ReturnInitiator Initiator { get; set; }
         public string InitiatorName { get; set; } = string.Empty;

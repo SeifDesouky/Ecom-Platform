@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="global.json" />
+  </Folder>
   <Project Path="EcomPlatform.API/EcomPlatform.API.csproj" />
   <Project Path="EcomPlatform.Application/EcomPlatform.Application.csproj" />
   <Project Path="EcomPlatform.Core/EcomPlatform.Core.csproj" />

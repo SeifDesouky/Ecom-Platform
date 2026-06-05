@@ -9,10 +9,14 @@ namespace EcomPlatform.Infrastructure.Services
     public class NotificationService : INotificationService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IRealtimeNotificationService _realtime;
 
-        public NotificationService(IUnitOfWork unitOfWork)
+        public NotificationService(
+            IUnitOfWork unitOfWork,
+            IRealtimeNotificationService realtime)
         {
             _unitOfWork = unitOfWork;
+            _realtime = realtime;
         }
 
         public async Task<ApiResponse<NotificationResponseDto>> CreateAsync(CreateNotificationDto dto)
@@ -32,7 +36,12 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Notifications.AddAsync(notification);
             await _unitOfWork.SaveChangesAsync();
 
-            return ApiResponse<NotificationResponseDto>.Ok(MapToDto(notification), "Notification created successfully");
+            var dto_result = MapToDto(notification);
+
+            // بعت الـ notification فوراً عبر SignalR
+            _ = _realtime.SendNotificationAsync(dto.UserId.ToString(), dto_result);
+
+            return ApiResponse<NotificationResponseDto>.Ok(dto_result, "Notification created successfully");
         }
 
         public async Task<ApiResponse<NotificationStatsDto>> GetByUserAsync(Guid userId)
