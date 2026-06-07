@@ -21,6 +21,18 @@ namespace EcomPlatform.API.Controllers
             _userService = userService;
         }
 
+        // SuperAdmin فقط — كل يوزرز المنصة مع search + paging
+        [HttpGet("all")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? search,
+            [FromQuery] int page = 1,
+            [FromQuery] int limit = 20)
+        {
+            var result = await _userService.GetAllAsync(search, page, limit);
+            return Ok(result);
+        }
+
         // TenantAdmin وفوق — يشوف users الـ tenant بتاعه
         [HttpGet("tenant/{tenantId}")]
         [Authorize(Policy = Policies.TenantAdminOrAbove)]

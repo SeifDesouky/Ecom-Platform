@@ -9,6 +9,7 @@ namespace EcomPlatform.Application.Services.Interfaces
         Task<ApiResponse<UserResponseDto>> CreateAsync(CreateUserDto dto);
         Task<ApiResponse<UserResponseDto>> GetByIdAsync(Guid id);
         Task<ApiResponse<IEnumerable<UserResponseDto>>> GetAllByTenantAsync(Guid tenantId);
+        Task<ApiResponse<IEnumerable<UserResponseDto>>> GetAllAsync(string? search, int page, int limit); // ← جديد
         Task<ApiResponse<UserResponseDto>> UpdateAsync(Guid id, UpdateUserDto dto);
         Task<ApiResponse<bool>> DeleteAsync(Guid id);
         Task<ApiResponse<bool>> ToggleStatusAsync(Guid id);

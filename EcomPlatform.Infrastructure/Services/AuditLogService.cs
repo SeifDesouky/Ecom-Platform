@@ -20,7 +20,7 @@ namespace EcomPlatform.Infrastructure.Services
             string entityName,
             string entityId,
             AuditAction action,
-            Guid userId,
+            Guid? userId,
             Guid? tenantId,
             string oldValue = "",
             string newValue = "",
@@ -36,7 +36,7 @@ namespace EcomPlatform.Infrastructure.Services
                 NewValue = newValue,
                 IPAddress = ipAddress,
                 UserAgent = userAgent,
-                UserId = userId,
+                UserId = (userId.HasValue && userId.Value != Guid.Empty) ? userId : null,
                 TenantId = tenantId
             };
 
@@ -93,29 +93,28 @@ namespace EcomPlatform.Infrastructure.Services
 
         // ── Private Helpers ───────────────────────────────────────────────
 
-        /// <summary>
-        /// جلب أسماء المستخدمين في query واحدة بدل N+1 queries
-        /// </summary>
         private async Task<IEnumerable<AuditLogResponseDto>> EnrichWithUserNamesAsync(
             IReadOnlyList<AuditLog> logs)
         {
             if (logs.Count == 0)
                 return Enumerable.Empty<AuditLogResponseDto>();
 
-            // ── جلب كل الـ users المطلوبين في call واحدة ─────────────────
             var userIds = logs
-                .Select(l => l.UserId)
+                .Where(l => l.UserId.HasValue && l.UserId.Value != Guid.Empty)
+                .Select(l => l.UserId!.Value)
                 .Distinct()
                 .ToList();
 
-            var users = await _unitOfWork.Users.FindAsync(u => userIds.Contains(u.Id));
+            var usersDict = userIds.Count > 0
+                ? (await _unitOfWork.Users.FindAsync(u => userIds.Contains(u.Id)))
+                    .ToDictionary(u => u.Id)
+                : new Dictionary<Guid, User>();
 
-            var usersDict = users.ToDictionary(u => u.Id);
-
-            // ── Map ───────────────────────────────────────────────────────
             return logs.Select(log =>
             {
-                usersDict.TryGetValue(log.UserId, out var user);
+                User? user = null;
+                if (log.UserId.HasValue && log.UserId.Value != Guid.Empty)
+                    usersDict.TryGetValue(log.UserId.Value, out user);
 
                 return new AuditLogResponseDto
                 {

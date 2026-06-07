@@ -122,7 +122,7 @@ namespace EcomPlatform.Infrastructure.Services
                 entityName: "PaymentLink",
                 entityId: link.Id.ToString(),
                 action: AuditAction.Create,
-                userId: dto.CreatedById ?? Guid.Empty,
+                userId: dto.CreatedById,    // nullable — لو null مش هيتسجل user
                 tenantId: dto.TenantId,
                 newValue: $"PaymentLink '{link.Title}' ({link.Code}) created — Amount: {link.Amount} {link.Currency}");
 
@@ -369,7 +369,7 @@ namespace EcomPlatform.Infrastructure.Services
                 entityName: "PaymentLinkTransaction",
                 entityId: transaction.Id.ToString(),
                 action: AuditAction.Create,
-                userId: Guid.Empty,
+                userId: null,       // دفع من عميل مجهول — مفيش userId
                 tenantId: link.TenantId,
                 newValue: $"Payment received — Link: {link.Code}, Payer: {dto.PayerName}, Amount: {link.Amount} {link.Currency}, Gateway: {dto.GatewayName}");
 
@@ -463,7 +463,6 @@ namespace EcomPlatform.Infrastructure.Services
                 }
                 else if (link.LinkType == PaymentLinkType.FreeAmount)
                 {
-                    // مفيش منتجات — نضيف item وهمي بالمبلغ الكلي
                     items.Add(new CreateOrderItemDto
                     {
                         ProductId = Guid.Empty,
@@ -489,7 +488,7 @@ namespace EcomPlatform.Infrastructure.Services
             }
             catch
             {
-                return null;  // فشل إنشاء الأوردر مش بيوقف عملية الدفع
+                return null;
             }
         }
 
@@ -509,7 +508,7 @@ namespace EcomPlatform.Infrastructure.Services
                         $"تم إنشاء رابط دفع: {link.Title}",
                         BuildLinkCreatedEmail(admin.FirstName ?? "Admin", link, publicUrl));
             }
-            catch { /* إرسال الإيميل اختياري */ }
+            catch { }
         }
 
         private async Task SendPostPaymentNotificationsAsync(
@@ -541,7 +540,7 @@ namespace EcomPlatform.Infrastructure.Services
                         BuildAdminPaymentEmail(tx, link, orderNumber));
                 }
             }
-            catch { /* الإشعارات لا توقف العملية */ }
+            catch { }
         }
 
         private static string BuildLinkCreatedEmail(string name, PaymentLink link, string publicUrl) => $@"

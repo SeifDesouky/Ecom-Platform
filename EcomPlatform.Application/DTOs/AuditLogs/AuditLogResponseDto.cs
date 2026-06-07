@@ -12,7 +12,7 @@ namespace EcomPlatform.Application.DTOs.AuditLogs
         public string OldValue { get; set; } = string.Empty;
         public string NewValue { get; set; } = string.Empty;
         public string IPAddress { get; set; } = string.Empty;
-        public Guid UserId { get; set; }
+        public Guid? UserId { get; set; }       // nullable
         public string UserName { get; set; } = string.Empty;
         public Guid? TenantId { get; set; }
         public DateTime CreatedAt { get; set; }

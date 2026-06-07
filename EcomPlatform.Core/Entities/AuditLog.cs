@@ -14,7 +14,7 @@ namespace EcomPlatform.Core.Entities
         public string UserAgent { get; set; } = string.Empty;
 
         // Relations
-        public Guid UserId { get; set; }
+        public Guid? UserId { get; set; }       // nullable — system/anonymous actions
         public User? User { get; set; }
         public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }

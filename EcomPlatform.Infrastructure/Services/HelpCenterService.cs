@@ -88,6 +88,23 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<List<HelpCategoryResponseDto>>.Ok(result);
         }
 
+        // ✅ جديد — للسوبر ادمن بدون tenant filter
+        public async Task<ApiResponse<PagedResponse<HelpCategoryResponseDto>>> GetCategoriesAdminAsync(PaginationParams pagination)
+        {
+            var all = await _unitOfWork.HelpCategories.FindWithoutFilterAsync(_ => true);
+            var totalCount = all.Count();
+            var items = all
+                .OrderBy(c => c.SortOrder)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .ToList();
+
+            var result = PagedResponse<HelpCategoryResponseDto>.Create(
+                items.Select(MapCategory).ToList(), totalCount, pagination);
+
+            return ApiResponse<PagedResponse<HelpCategoryResponseDto>>.Ok(result);
+        }
+
         public async Task<ApiResponse<HelpCategoryResponseDto>> UpdateCategoryAsync(Guid id, UpdateHelpCategoryDto dto)
         {
             var category = await _unitOfWork.HelpCategories.GetByIdAsync(id);
@@ -315,18 +332,18 @@ namespace EcomPlatform.Infrastructure.Services
                 Query = query,
                 TotalResults = articles.Count(),
                 Articles = articles.OrderByDescending(a => a.ViewCount)
-                                       .Select(a => new HelpArticleSummaryDto
-                                       {
-                                           Id = a.Id,
-                                           Title = a.Title,
-                                           Slug = a.Slug,
-                                           Excerpt = a.Excerpt,
-                                           IsFAQ = a.IsFAQ,
-                                           ViewCount = a.ViewCount,
-                                           HelpfulCount = a.HelpfulCount,
-                                           SortOrder = a.SortOrder,
-                                           PublishedAt = a.PublishedAt
-                                       }).ToList()
+                                   .Select(a => new HelpArticleSummaryDto
+                                   {
+                                       Id = a.Id,
+                                       Title = a.Title,
+                                       Slug = a.Slug,
+                                       Excerpt = a.Excerpt,
+                                       IsFAQ = a.IsFAQ,
+                                       ViewCount = a.ViewCount,
+                                       HelpfulCount = a.HelpfulCount,
+                                       SortOrder = a.SortOrder,
+                                       PublishedAt = a.PublishedAt
+                                   }).ToList()
             };
 
             return ApiResponse<HelpSearchResultDto>.Ok(result);
@@ -381,19 +398,19 @@ namespace EcomPlatform.Infrastructure.Services
             TenantId = c.TenantId,
             CreatedAt = c.CreatedAt,
             Articles = c.Articles?.Where(a => a.Status == ArticleStatus.Published)
-                                       .OrderBy(a => a.SortOrder)
-                                       .Select(a => new HelpArticleSummaryDto
-                                       {
-                                           Id = a.Id,
-                                           Title = a.Title,
-                                           Slug = a.Slug,
-                                           Excerpt = a.Excerpt,
-                                           IsFAQ = a.IsFAQ,
-                                           ViewCount = a.ViewCount,
-                                           HelpfulCount = a.HelpfulCount,
-                                           SortOrder = a.SortOrder,
-                                           PublishedAt = a.PublishedAt
-                                       }).ToList() ?? new()
+                                   .OrderBy(a => a.SortOrder)
+                                   .Select(a => new HelpArticleSummaryDto
+                                   {
+                                       Id = a.Id,
+                                       Title = a.Title,
+                                       Slug = a.Slug,
+                                       Excerpt = a.Excerpt,
+                                       IsFAQ = a.IsFAQ,
+                                       ViewCount = a.ViewCount,
+                                       HelpfulCount = a.HelpfulCount,
+                                       SortOrder = a.SortOrder,
+                                       PublishedAt = a.PublishedAt
+                                   }).ToList() ?? new()
         };
 
         private static HelpArticleResponseDto MapArticle(HelpArticle a) => new()
@@ -416,8 +433,8 @@ namespace EcomPlatform.Infrastructure.Services
             HelpCategoryId = a.HelpCategoryId,
             HelpCategoryName = a.HelpCategory?.Name ?? string.Empty,
             AuthorName = a.Author != null
-                                ? $"{a.Author.FirstName} {a.Author.LastName}".Trim()
-                                : string.Empty,
+                            ? $"{a.Author.FirstName} {a.Author.LastName}".Trim()
+                            : string.Empty,
             TenantId = a.TenantId,
             PublishedAt = a.PublishedAt,
             CreatedAt = a.CreatedAt

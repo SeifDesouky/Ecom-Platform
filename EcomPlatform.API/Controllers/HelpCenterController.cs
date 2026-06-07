@@ -44,7 +44,6 @@ namespace EcomPlatform.API.Controllers
             var result = await _helpCenterService.GetArticleBySlugAsync(slug, tenantId);
             if (!result.Success) return NotFound(result);
 
-            // increment view count بدون await لعدم تأخير الـ response
             _ = _helpCenterService.IncrementViewCountAsync(result.Data!.Id);
             return Ok(result);
         }
@@ -67,7 +66,7 @@ namespace EcomPlatform.API.Controllers
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
-        /// <summary>مقالات تصنيف معين</summary>
+        /// <summary>مقالات تصنيف معين — للـ storefront</summary>
         [HttpGet("categories/{categoryId:guid}/articles")]
         [AllowAnonymous]
         public async Task<IActionResult> GetArticlesByCategory(
@@ -87,7 +86,30 @@ namespace EcomPlatform.API.Controllers
         }
 
         // ════════════════════════════════════════════════════════════════════
-        // ADMIN — TenantAdmin+
+        // SUPER ADMIN — بدون tenantId
+        // ════════════════════════════════════════════════════════════════════
+
+        /// <summary>جلب كل التصنيفات — للسوبر ادمن</summary>
+        [HttpGet("admin/categories")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
+        public async Task<IActionResult> GetAllCategoriesAdmin([FromQuery] PaginationParams pagination)
+        {
+            var result = await _helpCenterService.GetCategoriesAdminAsync(pagination);
+            return Ok(result);
+        }
+
+        /// <summary>جلب مقالات تصنيف — للسوبر ادمن</summary>
+        [HttpGet("admin/categories/{categoryId:guid}/articles")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
+        public async Task<IActionResult> GetArticlesByCategoryAdmin(
+            Guid categoryId, [FromQuery] PaginationParams pagination)
+        {
+            var result = await _helpCenterService.GetArticlesByCategoryAsync(categoryId, pagination);
+            return Ok(result);
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // TENANT ADMIN — TenantAdmin+
         // ════════════════════════════════════════════════════════════════════
 
         /// <summary>جلب تصنيف بالـ ID</summary>

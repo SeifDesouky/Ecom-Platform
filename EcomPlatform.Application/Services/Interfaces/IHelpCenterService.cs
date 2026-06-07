@@ -29,5 +29,8 @@ namespace EcomPlatform.Application.Services.Interfaces
         Task<ApiResponse<HelpSearchResultDto>> SearchAsync(string query, Guid? tenantId);
         Task IncrementViewCountAsync(Guid articleId);
         Task<ApiResponse<bool>> SubmitFeedbackAsync(Guid articleId, bool isHelpful);
+        // زود السطر ده
+        Task<ApiResponse<PagedResponse<HelpCategoryResponseDto>>> GetCategoriesAdminAsync(PaginationParams pagination);
+
     }
 }

@@ -37,7 +37,6 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Users.AddAsync(user);
             await _unitOfWork.SaveChangesAsync();
 
-            // ← إنشاء UserProfile للـ user الجديد
             var profile = new UserProfile { UserId = user.Id };
             await _unitOfWork.UserProfiles.AddAsync(profile);
             await _unitOfWork.SaveChangesAsync();
@@ -58,6 +57,24 @@ namespace EcomPlatform.Infrastructure.Services
         {
             var users = await _unitOfWork.Users.FindAsync(u => u.TenantId == tenantId);
             return ApiResponse<IEnumerable<UserResponseDto>>.Ok(users.Select(MapToDto));
+        }
+
+        // ← جديد: SuperAdmin يشوف كل يوزرز المنصة
+        public async Task<ApiResponse<IEnumerable<UserResponseDto>>> GetAllAsync(string? search, int page, int limit)
+        {
+            var users = await _unitOfWork.Users.FindAsync(u =>
+                u.Role != UserRole.SuperAdmin &&
+                (string.IsNullOrEmpty(search) ||
+                 u.FirstName.Contains(search) ||
+                 u.LastName.Contains(search) ||
+                 u.Email.Contains(search))
+            );
+
+            var paged = users
+                .Skip((page - 1) * limit)
+                .Take(limit);
+
+            return ApiResponse<IEnumerable<UserResponseDto>>.Ok(paged.Select(MapToDto));
         }
 
         public async Task<ApiResponse<UserResponseDto>> UpdateAsync(Guid id, UpdateUserDto dto)

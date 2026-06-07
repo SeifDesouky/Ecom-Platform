@@ -181,7 +181,6 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Users.AddAsync(newUser);
             await _unitOfWork.SaveChangesAsync();
 
-            // ← إنشاء UserProfile للـ social user الجديد
             var profile = new UserProfile { UserId = newUser.Id };
             await _unitOfWork.UserProfiles.AddAsync(profile);
             await _unitOfWork.SaveChangesAsync();
@@ -297,7 +296,6 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Users.AddAsync(user);
             await _unitOfWork.SaveChangesAsync();
 
-            // ← إنشاء UserProfile للـ user الجديد
             var profile = new UserProfile { UserId = user.Id };
             await _unitOfWork.UserProfiles.AddAsync(profile);
             await _unitOfWork.SaveChangesAsync();
@@ -627,15 +625,18 @@ namespace EcomPlatform.Infrastructure.Services
 
         private string GenerateAccessToken(User user)
         {
-            var claims = new[]
+            var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub,   user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti,   Guid.NewGuid().ToString()),
-                new Claim("role",     user.Role.ToString()),
-                new Claim("tenantId", user.TenantId?.ToString() ?? ""),
-                new Claim("userId",   user.Id.ToString()),
+                new Claim("role",   user.Role.ToString()),
+                new Claim("userId", user.Id.ToString()),
             };
+
+            // ✅ بس أضف tenantId لو موجود — السوبر أدمن مش بيبعتش claim خالص
+            if (user.TenantId.HasValue)
+                claims.Add(new Claim("tenantId", user.TenantId.Value.ToString()));
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

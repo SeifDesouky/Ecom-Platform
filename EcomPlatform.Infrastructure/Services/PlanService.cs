@@ -42,15 +42,12 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Plans.AddAsync(plan);
             await _unitOfWork.SaveChangesAsync();
 
-            return ApiResponse<PlanResponseDto>.Ok(
-                MapToDto(plan),
-                "Plan created successfully");
+            return ApiResponse<PlanResponseDto>.Ok(MapToDto(plan), "Plan created successfully");
         }
 
         public async Task<ApiResponse<PlanResponseDto>> GetByIdAsync(Guid id)
         {
             var plan = await _unitOfWork.Plans.GetByIdAsync(id);
-
             if (plan == null)
                 return ApiResponse<PlanResponseDto>.Fail("Plan not found");
 
@@ -60,17 +57,12 @@ namespace EcomPlatform.Infrastructure.Services
         public async Task<ApiResponse<IEnumerable<PlanResponseDto>>> GetAllAsync()
         {
             var plans = await _unitOfWork.Plans.GetAllAsync();
-
-            return ApiResponse<IEnumerable<PlanResponseDto>>
-                .Ok(plans.Select(MapToDto));
+            return ApiResponse<IEnumerable<PlanResponseDto>>.Ok(plans.Select(MapToDto));
         }
 
-        public async Task<ApiResponse<PlanResponseDto>> UpdateAsync(
-            Guid id,
-            CreatePlanDto dto)
+        public async Task<ApiResponse<PlanResponseDto>> UpdateAsync(Guid id, CreatePlanDto dto)
         {
             var plan = await _unitOfWork.Plans.GetByIdAsync(id);
-
             if (plan == null)
                 return ApiResponse<PlanResponseDto>.Fail("Plan not found");
 
@@ -92,63 +84,70 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Plans.UpdateAsync(plan);
             await _unitOfWork.SaveChangesAsync();
 
-            return ApiResponse<PlanResponseDto>.Ok(
-                MapToDto(plan),
-                "Plan updated successfully");
+            return ApiResponse<PlanResponseDto>.Ok(MapToDto(plan), "Plan updated successfully");
         }
 
         public async Task<ApiResponse<bool>> DeleteAsync(Guid id)
         {
             var plan = await _unitOfWork.Plans.GetByIdAsync(id);
-
             if (plan == null)
                 return ApiResponse<bool>.Fail("Plan not found");
 
             await _unitOfWork.Plans.DeleteAsync(id);
             await _unitOfWork.SaveChangesAsync();
 
-            return ApiResponse<bool>.Ok(
-                true,
-                "Plan deleted successfully");
+            return ApiResponse<bool>.Ok(true, "Plan deleted successfully");
         }
 
         public async Task<ApiResponse<bool>> ToggleStatusAsync(Guid id)
         {
             var plan = await _unitOfWork.Plans.GetByIdAsync(id);
-
             if (plan == null)
                 return ApiResponse<bool>.Fail("Plan not found");
 
             plan.IsActive = !plan.IsActive;
-
             await _unitOfWork.Plans.UpdateAsync(plan);
             await _unitOfWork.SaveChangesAsync();
 
-            var message = plan.IsActive
-                ? "Plan activated"
-                : "Plan deactivated";
-
-            return ApiResponse<bool>.Ok(true, message);
+            return ApiResponse<bool>.Ok(true, plan.IsActive ? "Plan activated" : "Plan deactivated");
         }
 
-        public async Task<ApiResponse<SubscriptionResponseDto>> SubscribeAsync(
-            CreateSubscriptionDto dto)
+        // ← جديد: SuperAdmin يشوف كل الـ subscriptions
+        public async Task<ApiResponse<IEnumerable<SubscriptionResponseDto>>> GetAllSubscriptionsAsync(int page, int limit)
+        {
+            var all = await _unitOfWork.Subscriptions.GetAllAsync();
+
+            var paged = all
+                .OrderByDescending(s => s.CreatedAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .ToList();
+
+            var result = new List<SubscriptionResponseDto>();
+            foreach (var s in paged)
+            {
+                var plan = s.PlanId.HasValue ? await _unitOfWork.Plans.GetByIdAsync(s.PlanId.Value) : null;
+                var tenant = s.TenantId.HasValue ? await _unitOfWork.Tenants.GetByIdAsync(s.TenantId.Value) : null;
+                s.Plan = plan;
+                s.Tenant = tenant;
+                result.Add(MapSubscriptionToDto(s));
+            }
+
+            return ApiResponse<IEnumerable<SubscriptionResponseDto>>.Ok(result);
+        }
+
+        public async Task<ApiResponse<SubscriptionResponseDto>> SubscribeAsync(CreateSubscriptionDto dto)
         {
             var plan = await _unitOfWork.Plans.GetByIdAsync(dto.PlanId);
-
             if (plan == null)
-                return ApiResponse<SubscriptionResponseDto>
-                    .Fail("Plan not found");
+                return ApiResponse<SubscriptionResponseDto>.Fail("Plan not found");
 
             var tenant = await _unitOfWork.Tenants.GetByIdAsync(dto.TenantId);
-
             if (tenant == null)
-                return ApiResponse<SubscriptionResponseDto>
-                    .Fail("Tenant not found");
+                return ApiResponse<SubscriptionResponseDto>.Fail("Tenant not found");
 
             var existingSubs = await _unitOfWork.Subscriptions.FindAsync(s =>
-                s.TenantId == dto.TenantId &&
-                s.Status == SubscriptionStatus.Active);
+                s.TenantId == dto.TenantId && s.Status == SubscriptionStatus.Active);
 
             foreach (var sub in existingSubs)
             {
@@ -157,12 +156,8 @@ namespace EcomPlatform.Infrastructure.Services
                 await _unitOfWork.Subscriptions.UpdateAsync(sub);
             }
 
-            var price = dto.Period == SubscriptionPeriod.Monthly
-                ? plan.MonthlyPrice
-                : plan.YearlyPrice;
-
+            var price = dto.Period == SubscriptionPeriod.Monthly ? plan.MonthlyPrice : plan.YearlyPrice;
             var startDate = DateTime.UtcNow;
-
             var endDate = dto.Period == SubscriptionPeriod.Monthly
                 ? startDate.AddMonths(1)
                 : startDate.AddYears(1);
@@ -181,58 +176,42 @@ namespace EcomPlatform.Infrastructure.Services
             };
 
             tenant.SubscriptionEndDate = endDate;
-
             await _unitOfWork.Tenants.UpdateAsync(tenant);
             await _unitOfWork.Subscriptions.AddAsync(subscription);
             await _unitOfWork.SaveChangesAsync();
 
-            // ✅ قيد محاسبي تلقائي عند تأكيد الاشتراك
             await _accountingService.CreateSubscriptionPaidEntryAsync(subscription.Id, dto.TenantId);
 
             subscription.Plan = plan;
             subscription.Tenant = tenant;
 
-            return ApiResponse<SubscriptionResponseDto>.Ok(
-                MapSubscriptionToDto(subscription),
-                "Subscribed successfully");
+            return ApiResponse<SubscriptionResponseDto>.Ok(MapSubscriptionToDto(subscription), "Subscribed successfully");
         }
 
-        public async Task<ApiResponse<SubscriptionResponseDto>>
-            GetTenantSubscriptionAsync(Guid tenantId)
+        public async Task<ApiResponse<SubscriptionResponseDto>> GetTenantSubscriptionAsync(Guid tenantId)
         {
             var subs = await _unitOfWork.Subscriptions.FindAsync(s =>
-                s.TenantId == tenantId &&
-                s.Status == SubscriptionStatus.Active);
+                s.TenantId == tenantId && s.Status == SubscriptionStatus.Active);
 
             var subscription = subs.FirstOrDefault();
-
             if (subscription == null)
-                return ApiResponse<SubscriptionResponseDto>
-                    .Fail("No active subscription found");
+                return ApiResponse<SubscriptionResponseDto>.Fail("No active subscription found");
 
             if (!subscription.PlanId.HasValue)
-                return ApiResponse<SubscriptionResponseDto>
-                    .Fail("Subscription has no associated plan");
+                return ApiResponse<SubscriptionResponseDto>.Fail("Subscription has no associated plan");
 
-            var plan = await _unitOfWork.Plans
-                .GetByIdAsync(subscription.PlanId.Value);
-
-            var tenant = await _unitOfWork.Tenants
-                .GetByIdAsync(tenantId);
+            var plan = await _unitOfWork.Plans.GetByIdAsync(subscription.PlanId.Value);
+            var tenant = await _unitOfWork.Tenants.GetByIdAsync(tenantId);
 
             subscription.Plan = plan;
             subscription.Tenant = tenant;
 
-            return ApiResponse<SubscriptionResponseDto>
-                .Ok(MapSubscriptionToDto(subscription));
+            return ApiResponse<SubscriptionResponseDto>.Ok(MapSubscriptionToDto(subscription));
         }
 
-        public async Task<ApiResponse<bool>> CancelSubscriptionAsync(
-            Guid subscriptionId)
+        public async Task<ApiResponse<bool>> CancelSubscriptionAsync(Guid subscriptionId)
         {
-            var subscription = await _unitOfWork.Subscriptions
-                .GetByIdAsync(subscriptionId);
-
+            var subscription = await _unitOfWork.Subscriptions.GetByIdAsync(subscriptionId);
             if (subscription == null)
                 return ApiResponse<bool>.Fail("Subscription not found");
 
@@ -246,26 +225,18 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<bool>.Ok(true, "Subscription cancelled successfully");
         }
 
-        public async Task<ApiResponse<SubscriptionResponseDto>>
-            RenewSubscriptionAsync(Guid subscriptionId)
+        public async Task<ApiResponse<SubscriptionResponseDto>> RenewSubscriptionAsync(Guid subscriptionId)
         {
-            var subscription = await _unitOfWork.Subscriptions
-                .GetByIdAsync(subscriptionId);
-
+            var subscription = await _unitOfWork.Subscriptions.GetByIdAsync(subscriptionId);
             if (subscription == null)
-                return ApiResponse<SubscriptionResponseDto>
-                    .Fail("Subscription not found");
+                return ApiResponse<SubscriptionResponseDto>.Fail("Subscription not found");
 
             if (!subscription.PlanId.HasValue)
-                return ApiResponse<SubscriptionResponseDto>
-                    .Fail("Subscription has no associated plan");
+                return ApiResponse<SubscriptionResponseDto>.Fail("Subscription has no associated plan");
 
-            var plan = await _unitOfWork.Plans
-                .GetByIdAsync(subscription.PlanId.Value);
-
+            var plan = await _unitOfWork.Plans.GetByIdAsync(subscription.PlanId.Value);
             if (plan == null)
-                return ApiResponse<SubscriptionResponseDto>
-                    .Fail("Plan not found");
+                return ApiResponse<SubscriptionResponseDto>.Fail("Plan not found");
 
             subscription.StartDate = DateTime.UtcNow;
             subscription.EndDate = subscription.Period == SubscriptionPeriod.Monthly
@@ -274,12 +245,9 @@ namespace EcomPlatform.Infrastructure.Services
             subscription.Status = SubscriptionStatus.Active;
 
             if (!subscription.TenantId.HasValue)
-                return ApiResponse<SubscriptionResponseDto>
-                    .Fail("Subscription has no associated tenant");
+                return ApiResponse<SubscriptionResponseDto>.Fail("Subscription has no associated tenant");
 
-            var tenant = await _unitOfWork.Tenants
-                .GetByIdAsync(subscription.TenantId.Value);
-
+            var tenant = await _unitOfWork.Tenants.GetByIdAsync(subscription.TenantId.Value);
             if (tenant != null)
             {
                 tenant.SubscriptionEndDate = subscription.EndDate;
@@ -289,7 +257,6 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Subscriptions.UpdateAsync(subscription);
             await _unitOfWork.SaveChangesAsync();
 
-            // ✅ قيد محاسبي تلقائي عند تجديد الاشتراك
             if (subscription.TenantId.HasValue)
                 await _accountingService.CreateSubscriptionPaidEntryAsync(
                     subscription.Id, subscription.TenantId.Value);
@@ -297,9 +264,7 @@ namespace EcomPlatform.Infrastructure.Services
             subscription.Plan = plan;
             subscription.Tenant = tenant;
 
-            return ApiResponse<SubscriptionResponseDto>.Ok(
-                MapSubscriptionToDto(subscription),
-                "Subscription renewed successfully");
+            return ApiResponse<SubscriptionResponseDto>.Ok(MapSubscriptionToDto(subscription), "Subscription renewed successfully");
         }
 
         private static PlanResponseDto MapToDto(Plan plan) => new()
@@ -323,23 +288,22 @@ namespace EcomPlatform.Infrastructure.Services
             CreatedAt = plan.CreatedAt
         };
 
-        private static SubscriptionResponseDto MapSubscriptionToDto(
-            Subscription subscription) => new()
-            {
-                Id = subscription.Id,
-                TenantId = subscription.TenantId.GetValueOrDefault(),
-                TenantName = subscription.Tenant?.Name ?? string.Empty,
-                PlanId = subscription.PlanId.GetValueOrDefault(),
-                PlanName = subscription.Plan?.Name ?? string.Empty,
-                Status = subscription.Status,
-                Period = subscription.Period,
-                Price = subscription.Price,
-                StartDate = subscription.StartDate,
-                EndDate = subscription.EndDate,
-                AutoRenew = subscription.AutoRenew,
-                CancelledAt = subscription.CancelledAt,
-                Notes = subscription.Notes,
-                CreatedAt = subscription.CreatedAt
-            };
+        private static SubscriptionResponseDto MapSubscriptionToDto(Subscription subscription) => new()
+        {
+            Id = subscription.Id,
+            TenantId = subscription.TenantId.GetValueOrDefault(),
+            TenantName = subscription.Tenant?.Name ?? string.Empty,
+            PlanId = subscription.PlanId.GetValueOrDefault(),
+            PlanName = subscription.Plan?.Name ?? string.Empty,
+            Status = subscription.Status,
+            Period = subscription.Period,
+            Price = subscription.Price,
+            StartDate = subscription.StartDate,
+            EndDate = subscription.EndDate,
+            AutoRenew = subscription.AutoRenew,
+            CancelledAt = subscription.CancelledAt,
+            Notes = subscription.Notes,
+            CreatedAt = subscription.CreatedAt
+        };
     }
 }

@@ -16,5 +16,7 @@ namespace EcomPlatform.Core.Interfaces.Repositories
         Task UpdateAsync(T entity);
         Task DeleteAsync(Guid id);
         Task<bool> ExistsAsync(Guid id);
+        Task<IEnumerable<T>> FindWithoutFilterAsync(Expression<Func<T, bool>> predicate);
+
     }
 }

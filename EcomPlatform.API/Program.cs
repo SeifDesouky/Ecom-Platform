@@ -395,6 +395,7 @@ builder.Services.AddScoped<IHelpCenterService, HelpCenterService>();
 builder.Services.AddScoped<ITaxReportService, TaxReportService>();
 builder.Services.AddScoped<IExportReportService, ExportReportService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IAdminReportService, AdminReportService>();
 
 // ── Background Jobs ───────────────────────────────────────────────────────
 builder.Services.AddHostedService<BackgroundSyncJob>();

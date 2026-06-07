@@ -26,6 +26,13 @@ namespace EcomPlatform.Infrastructure.Repositories
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate) =>
             await ApplyIncludes(_dbSet).Where(predicate).ToListAsync();
 
+        // ✅ جديد — بيتجاهل الـ query filters للسوبر ادمن
+        public async Task<IEnumerable<T>> FindWithoutFilterAsync(Expression<Func<T, bool>> predicate) =>
+            await _context.Set<T>()
+                .IgnoreQueryFilters()
+                .Where(predicate)
+                .ToListAsync();
+
         public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
             Expression<Func<T, bool>> predicate,
             int skip,

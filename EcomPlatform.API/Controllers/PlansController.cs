@@ -129,5 +129,15 @@ namespace EcomPlatform.API.Controllers
                 return BadRequest(result);
             return Ok(result);
         }
+        // SuperAdmin فقط — كل الـ subscriptions في المنصة
+        [HttpGet("subscription/all")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
+        public async Task<IActionResult> GetAllSubscriptions(
+            [FromQuery] int page = 1,
+            [FromQuery] int limit = 20)
+        {
+            var result = await _planService.GetAllSubscriptionsAsync(page, limit);
+            return Ok(result);
+        }
     }
 }
