@@ -20,7 +20,7 @@ namespace EcomPlatform.API.Controllers
             _settingService = settingService;
         }
 
-        // Staff وفوق — يقرأ settings الـ tenant (محتاجها في لوحة التحكم)
+        // Staff وفوق — يقرأ settings الـ tenant
         [HttpGet("tenant/{tenantId}")]
         [Authorize(Policy = Policies.TenantStaffOrAbove)]
         public async Task<IActionResult> GetAllByTenant(Guid tenantId)
@@ -89,6 +89,23 @@ namespace EcomPlatform.API.Controllers
         public async Task<IActionResult> Initialize(Guid tenantId)
         {
             var result = await _settingService.InitializeDefaultSettingsAsync(tenantId);
+            return Ok(result);
+        }
+
+        // ✅ SuperAdmin فقط — Platform Settings
+        [HttpGet("platform")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
+        public async Task<IActionResult> GetPlatformSettings()
+        {
+            var result = await _settingService.GetPlatformSettingsAsync();
+            return Ok(result);
+        }
+
+        [HttpPut("platform/bulk-update")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
+        public async Task<IActionResult> BulkUpdatePlatform([FromBody] BulkUpdateSettingDto dto)
+        {
+            var result = await _settingService.BulkUpdatePlatformSettingsAsync(dto);
             return Ok(result);
         }
     }

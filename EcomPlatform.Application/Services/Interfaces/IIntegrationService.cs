@@ -21,5 +21,6 @@ namespace EcomPlatform.Application.Services.Interfaces
         // ── Sync ─────────────────────────────────────────────────────────────
         Task<ApiResponse<SyncResultDto>> SyncAsync(Guid integrationId, SyncEntityType entityType, SyncDirection direction, bool isManual = true, CancellationToken ct = default);
         Task<ApiResponse<IReadOnlyList<SyncLogDto>>> GetSyncLogsAsync(Guid integrationId, int page = 1, int pageSize = 20, CancellationToken ct = default);
+        Task<ApiResponse<IReadOnlyList<IntegrationDto>>> GetAllAsync(CancellationToken ct = default);
     }
 }

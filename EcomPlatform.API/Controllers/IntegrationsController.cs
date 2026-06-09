@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using EcomPlatform.Application.Common;
 using EcomPlatform.Application.DTOs.Integrations;
 using EcomPlatform.Application.Services.Interfaces;
 using EcomPlatform.Core.Enums;
@@ -130,6 +131,14 @@ namespace EcomPlatform.API.Controllers
                 c.Type == "tenantId" ||
                 c.Type == "TenantId");
             return claim != null && Guid.TryParse(claim.Value, out var id) ? id : Guid.Empty;
+        }
+        // ── SuperAdmin — كل الـ integrations ─────────────────────────────────────
+        [HttpGet("all")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
+        public async Task<IActionResult> GetAllForSuperAdmin()
+        {
+            var result = await _integrationService.GetAllAsync();
+            return Ok(result);
         }
     }
 }

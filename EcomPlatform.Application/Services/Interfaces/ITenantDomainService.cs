@@ -14,5 +14,8 @@ namespace EcomPlatform.Application.Services.Interfaces
         Task<ApiResponse<bool>> SetPrimaryAsync(Guid id);
         Task<ApiResponse<bool>> DeleteAsync(Guid id);
         Task<ApiResponse<bool>> UpdateStatusAsync(Guid id, DomainStatus status);
+
+        // Super Admin
+        Task<ApiResponse<IEnumerable<TenantDomainResponseDto>>> GetAllDomainsAsync(DomainStatus? status = null);
     }
 }

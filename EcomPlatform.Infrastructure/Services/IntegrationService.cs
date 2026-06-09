@@ -62,7 +62,6 @@ namespace EcomPlatform.Infrastructure.Services
                 SyncInventory = dto.SyncInventory,
                 SyncPrices = dto.SyncPrices,
                 AutoSyncIntervalMinutes = dto.AutoSyncIntervalMinutes,
-                // ✅ FIX: Active مباشرة بدل PendingSetup
                 Status = IntegrationStatus.Active
             };
 
@@ -84,12 +83,28 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<IntegrationDto>.Ok(MapToDto(integration));
         }
 
+        // Tenant-scoped
         public async Task<ApiResponse<IReadOnlyList<IntegrationDto>>> GetAllAsync(
             Guid tenantId,
             CancellationToken ct = default)
         {
             var integrations = await _unitOfWork.StoreIntegrations
                 .FindAsync(i => i.TenantId == tenantId && !i.IsDeleted);
+
+            var result = integrations
+                .OrderByDescending(i => i.CreatedAt)
+                .Select(MapToDto)
+                .ToList();
+
+            return ApiResponse<IReadOnlyList<IntegrationDto>>.Ok(result);
+        }
+
+        // ✅ SuperAdmin — كل الـ integrations بدون تصفية بالـ tenant
+        public async Task<ApiResponse<IReadOnlyList<IntegrationDto>>> GetAllAsync(
+            CancellationToken ct = default)
+        {
+            var integrations = await _unitOfWork.StoreIntegrations
+                .FindAsync(i => !i.IsDeleted);
 
             var result = integrations
                 .OrderByDescending(i => i.CreatedAt)

@@ -88,7 +88,6 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<List<HelpCategoryResponseDto>>.Ok(result);
         }
 
-        // ✅ جديد — للسوبر ادمن بدون tenant filter
         public async Task<ApiResponse<PagedResponse<HelpCategoryResponseDto>>> GetCategoriesAdminAsync(PaginationParams pagination)
         {
             var all = await _unitOfWork.HelpCategories.FindWithoutFilterAsync(_ => true);
@@ -215,12 +214,19 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<HelpArticleResponseDto>.Ok(MapArticle(article));
         }
 
+        // ✅ التعديل — استخدام FindWithoutFilterAsync للسوبر أدمن
         public async Task<ApiResponse<PagedResponse<HelpArticleResponseDto>>> GetArticlesByCategoryAsync(
             Guid categoryId, PaginationParams pagination)
         {
-            var (items, total) = await _unitOfWork.HelpArticles.GetPagedAsync(
-                a => a.HelpCategoryId == categoryId && a.Status == ArticleStatus.Published,
-                pagination.Skip, pagination.PageSize);
+            var all = await _unitOfWork.HelpArticles.FindWithoutFilterAsync(
+                a => a.HelpCategoryId == categoryId && a.Status == ArticleStatus.Published);
+
+            var total = all.Count();
+            var items = all
+                .OrderBy(a => a.SortOrder)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .ToList();
 
             foreach (var item in items)
                 await LoadArticleNavigationsAsync(item);

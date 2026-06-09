@@ -106,5 +106,13 @@ namespace EcomPlatform.API.Controllers
                 return NotFound(result);
             return Ok(result);
         }
+        // SuperAdmin فقط — يشوف كل الـ domains
+        [HttpGet("admin/all")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
+        public async Task<IActionResult> GetAllDomains([FromQuery] DomainStatus? status = null)
+        {
+            var result = await _domainService.GetAllDomainsAsync(status);
+            return Ok(result);
+        }
     }
 }

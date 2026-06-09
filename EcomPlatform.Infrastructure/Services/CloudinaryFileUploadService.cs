@@ -75,5 +75,48 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<List<FileUploadResponseDto>>.Ok(results,
                 $"{results.Count} files uploaded successfully");
         }
+
+        public async Task<ApiResponse<CloudinaryMediaLibraryDto>> GetAllMediaAsync(
+            string? folder = null, int maxResults = 50, string? nextCursor = null)
+        {
+            var searchFolder = string.IsNullOrEmpty(folder)
+                ? "ecomplatform"
+                : $"ecomplatform/{folder}";
+
+            var searchExpression = $"folder:{searchFolder}/*";
+
+            var search = _cloudinary.Search()
+                .Expression(searchExpression)
+                .WithField("context")
+                .WithField("tags")
+                .MaxResults(maxResults);
+
+            if (!string.IsNullOrEmpty(nextCursor))
+                search = search.NextCursor(nextCursor);
+
+            var result = await search.ExecuteAsync();
+
+            if (result.Error != null)
+                return ApiResponse<CloudinaryMediaLibraryDto>.Fail(result.Error.Message);
+
+            var items = result.Resources.Select(r => new CloudinaryMediaItemDto
+            {
+                PublicId = r.PublicId,
+                Url = r.SecureUrl?.ToString() ?? string.Empty,
+                Format = r.Format,
+                Width = r.Width,
+                Height = r.Height,
+                Size = r.Bytes,
+                Folder = r.Folder ?? string.Empty,
+                CreatedAt = DateTime.TryParse(r.CreatedAt, out var dt) ? dt : DateTime.UtcNow
+            }).ToList();
+
+            return ApiResponse<CloudinaryMediaLibraryDto>.Ok(new CloudinaryMediaLibraryDto
+            {
+                Items = items,
+                TotalCount = result.TotalCount,
+                NextCursor = result.NextCursor
+            }, "Media fetched successfully");
+        }
     }
 }

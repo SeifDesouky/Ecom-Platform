@@ -12,5 +12,9 @@ namespace EcomPlatform.Application.Services.Interfaces
         Task<ApiResponse<bool>> BulkUpdateAsync(BulkUpdateSettingDto dto);
         Task<ApiResponse<bool>> DeleteAsync(Guid id);
         Task<ApiResponse<bool>> InitializeDefaultSettingsAsync(Guid tenantId);
+
+        // ✅ SuperAdmin فقط
+        Task<ApiResponse<IEnumerable<SettingGroupDto>>> GetPlatformSettingsAsync();
+        Task<ApiResponse<bool>> BulkUpdatePlatformSettingsAsync(BulkUpdateSettingDto dto);
     }
 }

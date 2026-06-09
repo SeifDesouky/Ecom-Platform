@@ -69,7 +69,6 @@ namespace EcomPlatform.Infrastructure.Services
             if (domain == null)
                 return ApiResponse<bool>.Fail("Domain not found");
 
-            // In production: verify CNAME record
             domain.Status = DomainStatus.Active;
             domain.VerifiedAt = DateTime.UtcNow;
 
@@ -85,7 +84,6 @@ namespace EcomPlatform.Infrastructure.Services
             if (domain == null)
                 return ApiResponse<bool>.Fail("Domain not found");
 
-            // ✅ الفيكس - التحقق من Status
             if (domain.Status != DomainStatus.Active)
                 return ApiResponse<bool>.Fail("Domain must be verified before enabling SSL");
 
@@ -147,6 +145,16 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.SaveChangesAsync();
 
             return ApiResponse<bool>.Ok(true, "Domain status updated successfully");
+        }
+
+        // Super Admin
+        public async Task<ApiResponse<IEnumerable<TenantDomainResponseDto>>> GetAllDomainsAsync(DomainStatus? status = null)
+        {
+            var domains = status.HasValue
+                ? await _unitOfWork.TenantDomains.FindAsync(d => d.Status == status.Value)
+                : await _unitOfWork.TenantDomains.FindAsync(_ => true);
+
+            return ApiResponse<IEnumerable<TenantDomainResponseDto>>.Ok(domains.Select(MapToDto));
         }
 
         private static string GenerateVerificationToken() =>

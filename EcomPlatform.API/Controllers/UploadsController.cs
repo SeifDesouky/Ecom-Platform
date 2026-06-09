@@ -19,7 +19,7 @@ namespace EcomPlatform.API.Controllers
         }
 
         [HttpPost("image")]
-        [RequestSizeLimit(10 * 1024 * 1024)] // 10MB
+        [RequestSizeLimit(10 * 1024 * 1024)]
         public async Task<IActionResult> UploadImage(
             IFormFile file,
             [FromQuery] string folder = "general")
@@ -42,7 +42,7 @@ namespace EcomPlatform.API.Controllers
         }
 
         [HttpPost("images")]
-        [RequestSizeLimit(50 * 1024 * 1024)] // 50MB
+        [RequestSizeLimit(50 * 1024 * 1024)]
         public async Task<IActionResult> UploadMultipleImages(
             List<IFormFile> files,
             [FromQuery] string folder = "general")
@@ -73,6 +73,36 @@ namespace EcomPlatform.API.Controllers
 
         [HttpDelete]
         public async Task<IActionResult> DeleteFile([FromQuery] string publicId)
+        {
+            if (string.IsNullOrEmpty(publicId))
+                return BadRequest("Public ID is required");
+
+            var result = await _uploadService.DeleteFileAsync(publicId);
+            if (!result.Success)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        // ============ Super Admin ============
+
+        [HttpGet("admin/media")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> GetAllMedia(
+            [FromQuery] string? folder = null,
+            [FromQuery] int maxResults = 50,
+            [FromQuery] string? nextCursor = null)
+        {
+            var result = await _uploadService.GetAllMediaAsync(folder, maxResults, nextCursor);
+            if (!result.Success)
+                return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        [HttpDelete("admin/media")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> AdminDeleteFile([FromQuery] string publicId)
         {
             if (string.IsNullOrEmpty(publicId))
                 return BadRequest("Public ID is required");
