@@ -16,6 +16,7 @@ namespace EcomPlatform.Application.Services.Interfaces
         Task<ApiResponse<bool>> CancelSubscriptionAsync(Guid subscriptionId);
         Task<ApiResponse<SubscriptionResponseDto>> RenewSubscriptionAsync(Guid subscriptionId);
         Task<ApiResponse<IEnumerable<SubscriptionResponseDto>>> GetAllSubscriptionsAsync(int page, int limit);
+        Task<ApiResponse<SubscriptionStatsDto>> GetSubscriptionStatsAsync();
 
     }
 }

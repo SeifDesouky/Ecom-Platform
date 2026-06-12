@@ -3,6 +3,7 @@ using EcomPlatform.Application.Common;
 using EcomPlatform.Application.DTOs.Domains;
 using EcomPlatform.Application.Services.Interfaces;
 using EcomPlatform.Core.Enums;
+using EcomPlatform.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,10 +16,12 @@ namespace EcomPlatform.API.Controllers
     public class DomainsController : ControllerBase
     {
         private readonly ITenantDomainService _domainService;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public DomainsController(ITenantDomainService domainService)
+        public DomainsController(ITenantDomainService domainService, IUnitOfWork unitOfWork)
         {
             _domainService = domainService;
+            _unitOfWork = unitOfWork;
         }
 
         // TenantAdmin وفوق — يشوف domains الـ tenant
@@ -85,7 +88,7 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // SuperAdmin فقط — تغيير status الـ domain (قرار المنصة)
+        // SuperAdmin فقط — تغيير status الـ domain
         [HttpPatch("{id}/status")]
         [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] DomainStatus status)
@@ -106,6 +109,7 @@ namespace EcomPlatform.API.Controllers
                 return NotFound(result);
             return Ok(result);
         }
+
         // SuperAdmin فقط — يشوف كل الـ domains
         [HttpGet("admin/all")]
         [Authorize(Policy = Policies.SuperAdminOnly)]
@@ -113,6 +117,50 @@ namespace EcomPlatform.API.Controllers
         {
             var result = await _domainService.GetAllDomainsAsync(status);
             return Ok(result);
+        }
+
+        // SuperAdmin فقط — webhook stats
+        [HttpGet("admin/webhook-stats")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
+        public async Task<IActionResult> GetWebhookStats(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? status = null)
+        {
+            var all = await _unitOfWork.WebhookEvents.FindAsync(_ => true);
+
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<WebhookEventStatus>(status, out var statusEnum))
+                all = all.Where(e => e.Status == statusEnum);
+
+            var list = all.OrderByDescending(e => e.CreatedAt).ToList();
+
+            var stats = new
+            {
+                Total = list.Count,
+                Received = list.Count(e => e.Status == WebhookEventStatus.Received),
+                Processing = list.Count(e => e.Status == WebhookEventStatus.Processing),
+                Processed = list.Count(e => e.Status == WebhookEventStatus.Processed),
+                Failed = list.Count(e => e.Status == WebhookEventStatus.Failed),
+                Items = list
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(e => new
+                    {
+                        e.Id,
+                        e.EventType,
+                        Status = e.Status.ToString(),
+                        e.IsVerified,
+                        e.RetryCount,
+                        e.ErrorMessage,
+                        e.CreatedAt,
+                        e.ProcessedAt,
+                        e.LastAttemptAt,
+                        e.TenantId,
+                        e.StoreIntegrationId
+                    })
+            };
+
+            return Ok(ApiResponse<object>.Ok(stats));
         }
     }
 }

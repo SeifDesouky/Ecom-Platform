@@ -85,8 +85,9 @@ namespace EcomPlatform.API.Controllers
         [Authorize(Policy = Policies.TenantStaffOrAbove)]
         public async Task<IActionResult> GetActiveSession([FromQuery] Guid tenantId)
         {
+            // ✅ FIX: رجّع Ok دايماً عشان الفرونت يقدر يقرأ الـ response
+            // لو مفيش session، الـ success=false والفرونت يتعامل معاها في next: مش error:
             var result = await _posService.GetActiveSessionAsync(tenantId, GetUserId());
-            if (!result.Success) return NotFound(result);
             return Ok(result);
         }
 

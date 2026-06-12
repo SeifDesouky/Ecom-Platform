@@ -28,4 +28,14 @@ namespace EcomPlatform.Application.DTOs.Plans
         public string Notes { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
+    public class SubscriptionStatsDto
+    {
+        public int TotalSubscriptions { get; set; }
+        public int ActiveSubscriptions { get; set; }
+        public int CancelledSubscriptions { get; set; }
+        public int ExpiredSubscriptions { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public decimal MonthlyRevenue { get; set; }
+        public decimal YearlyRevenue { get; set; }
+    }
 }

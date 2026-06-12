@@ -112,7 +112,6 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<bool>.Ok(true, plan.IsActive ? "Plan activated" : "Plan deactivated");
         }
 
-        // ← جديد: SuperAdmin يشوف كل الـ subscriptions
         public async Task<ApiResponse<IEnumerable<SubscriptionResponseDto>>> GetAllSubscriptionsAsync(int page, int limit)
         {
             var all = await _unitOfWork.Subscriptions.GetAllAsync();
@@ -134,6 +133,25 @@ namespace EcomPlatform.Infrastructure.Services
             }
 
             return ApiResponse<IEnumerable<SubscriptionResponseDto>>.Ok(result);
+        }
+
+        public async Task<ApiResponse<SubscriptionStatsDto>> GetSubscriptionStatsAsync()
+        {
+            var all = await _unitOfWork.Subscriptions.GetAllAsync();
+            var list = all.ToList();
+
+            var stats = new SubscriptionStatsDto
+            {
+                TotalSubscriptions = list.Count,
+                ActiveSubscriptions = list.Count(s => s.Status == SubscriptionStatus.Active),
+                CancelledSubscriptions = list.Count(s => s.Status == SubscriptionStatus.Cancelled),
+                ExpiredSubscriptions = list.Count(s => s.Status == SubscriptionStatus.Expired),
+                TotalRevenue = list.Sum(s => s.Price),
+                MonthlyRevenue = list.Where(s => s.Period == SubscriptionPeriod.Monthly).Sum(s => s.Price),
+                YearlyRevenue = list.Where(s => s.Period == SubscriptionPeriod.Yearly).Sum(s => s.Price)
+            };
+
+            return ApiResponse<SubscriptionStatsDto>.Ok(stats);
         }
 
         public async Task<ApiResponse<SubscriptionResponseDto>> SubscribeAsync(CreateSubscriptionDto dto)

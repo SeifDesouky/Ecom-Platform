@@ -20,7 +20,6 @@ namespace EcomPlatform.API.Controllers
             _planService = planService;
         }
 
-        // AllowAnonymous — الـ pricing page عامة للكل
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> GetAll()
@@ -29,7 +28,6 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // AllowAnonymous — تفاصيل plan معينة
         [HttpGet("{id}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetById(Guid id)
@@ -40,7 +38,6 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // SuperAdmin فقط — إنشاء plan جديد
         [HttpPost]
         [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> Create([FromBody] CreatePlanDto dto)
@@ -51,7 +48,6 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // SuperAdmin فقط — تعديل plan
         [HttpPut("{id}")]
         [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> Update(Guid id, [FromBody] CreatePlanDto dto)
@@ -62,7 +58,6 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // SuperAdmin فقط — حذف plan
         [HttpDelete("{id}")]
         [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> Delete(Guid id)
@@ -73,7 +68,6 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // SuperAdmin فقط — تفعيل/تعطيل plan
         [HttpPatch("{id}/toggle-status")]
         [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> ToggleStatus(Guid id)
@@ -86,7 +80,6 @@ namespace EcomPlatform.API.Controllers
 
         // ─── Subscriptions ────────────────────────────────────────────────────
 
-        // TenantAdmin وفوق — الاشتراك في plan
         [HttpPost("subscribe")]
         [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> Subscribe([FromBody] CreateSubscriptionDto dto)
@@ -97,7 +90,6 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // TenantAdmin وفوق — يشوف subscription الـ tenant
         [HttpGet("subscription/tenant/{tenantId}")]
         [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> GetTenantSubscription(Guid tenantId)
@@ -108,7 +100,6 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // TenantAdmin وفوق — إلغاء subscription
         [HttpPatch("subscription/{subscriptionId}/cancel")]
         [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> CancelSubscription(Guid subscriptionId)
@@ -119,7 +110,6 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // TenantAdmin وفوق — تجديد subscription
         [HttpPatch("subscription/{subscriptionId}/renew")]
         [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> RenewSubscription(Guid subscriptionId)
@@ -129,7 +119,7 @@ namespace EcomPlatform.API.Controllers
                 return BadRequest(result);
             return Ok(result);
         }
-        // SuperAdmin فقط — كل الـ subscriptions في المنصة
+
         [HttpGet("subscription/all")]
         [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> GetAllSubscriptions(
@@ -137,6 +127,15 @@ namespace EcomPlatform.API.Controllers
             [FromQuery] int limit = 20)
         {
             var result = await _planService.GetAllSubscriptionsAsync(page, limit);
+            return Ok(result);
+        }
+
+        // SuperAdmin فقط — إحصائيات مالية
+        [HttpGet("subscription/stats")]
+        [Authorize(Policy = Policies.SuperAdminOnly)]
+        public async Task<IActionResult> GetSubscriptionStats()
+        {
+            var result = await _planService.GetSubscriptionStatsAsync();
             return Ok(result);
         }
     }

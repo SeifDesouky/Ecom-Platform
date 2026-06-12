@@ -148,16 +148,16 @@ namespace EcomPlatform.Infrastructure.Services
         public async Task<ApiResponse<PosSessionResponseDto>> GetActiveSessionAsync(
             Guid tenantId, Guid cashierId)
         {
+            // ✅ FIX: شيلنا تقييد cashierId عشان يجيب أي session مفتوحة للـ tenant
             var sessions = await _unitOfWork.PosSessions.FindAsync(s =>
                 s.TenantId == tenantId &&
-                s.CashierId == cashierId &&
                 s.Status == PosSessionStatus.Open);
 
             var session = sessions.FirstOrDefault();
             if (session == null)
                 return ApiResponse<PosSessionResponseDto>.Fail("No active session found.");
 
-            var cashier = await _unitOfWork.Users.GetByIdAsync(cashierId);
+            var cashier = await _unitOfWork.Users.GetByIdAsync(session.CashierId);
             return ApiResponse<PosSessionResponseDto>.Ok(MapSessionToDto(session, cashier));
         }
 
