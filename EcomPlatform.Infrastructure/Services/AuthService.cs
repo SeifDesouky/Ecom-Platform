@@ -234,7 +234,7 @@ namespace EcomPlatform.Infrastructure.Services
                 Token = accessToken,
                 RefreshToken = plainToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryInMinutes),
-                User = MapToUserDto(user)
+                User = await MapToUserDtoAsync(user)
             }, $"{loginProvider} login successful");
         }
 
@@ -332,7 +332,7 @@ namespace EcomPlatform.Infrastructure.Services
                 Token = accessToken,
                 RefreshToken = plainToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryInMinutes),
-                User = MapToUserDto(user)
+                User = await MapToUserDtoAsync(user)
             }, "Registered successfully");
         }
 
@@ -395,7 +395,7 @@ namespace EcomPlatform.Infrastructure.Services
                 Token = accessToken,
                 RefreshToken = plainToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryInMinutes),
-                User = MapToUserDto(user)
+                User = await MapToUserDtoAsync(user)
             }, "Login successful");
         }
 
@@ -458,7 +458,7 @@ namespace EcomPlatform.Infrastructure.Services
                 Token = GenerateAccessToken(user),
                 RefreshToken = newPlainToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryInMinutes),
-                User = MapToUserDto(user)
+                User = await MapToUserDtoAsync(user)
             }, "Token refreshed");
         }
 
@@ -634,7 +634,6 @@ namespace EcomPlatform.Infrastructure.Services
                 new Claim("userId", user.Id.ToString()),
             };
 
-            // ✅ بس أضف tenantId لو موجود — السوبر أدمن مش بيبعتش claim خالص
             if (user.TenantId.HasValue)
                 claims.Add(new Claim("tenantId", user.TenantId.Value.ToString()));
 
@@ -686,14 +685,21 @@ namespace EcomPlatform.Infrastructure.Services
             }
         }
 
-        private static UserDto MapToUserDto(User user) => new()
+        private async Task<UserDto> MapToUserDtoAsync(User user)
         {
-            Id = user.Id,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Email = user.Email,
-            Role = user.Role.ToString(),
-            TenantId = user.TenantId
-        };
+            var profiles = await _unitOfWork.UserProfiles.FindAsync(p => p.UserId == user.Id);
+            var profile = profiles.FirstOrDefault();
+
+            return new UserDto
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Role = user.Role.ToString(),
+                TenantId = user.TenantId,
+                AvatarUrl = profile?.AvatarUrl
+            };
+        }
     }
 }

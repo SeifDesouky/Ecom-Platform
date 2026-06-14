@@ -203,7 +203,10 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.StoreIntegrations.UpdateAsync(integration);
             await _unitOfWork.SaveChangesAsync();
 
-            return ApiResponse<AdapterResult>.Ok(result);
+            // ✅ الإصلاح: رجّع success أو fail حسب نتيجة الـ test
+            return result.IsSuccess
+                ? ApiResponse<AdapterResult>.Ok(result, "Connection successful")
+                : ApiResponse<AdapterResult>.Fail(result.ErrorMessage ?? "Connection failed");
         }
 
         public async Task<ApiResponse<bool>> ActivateAsync(
