@@ -27,36 +27,108 @@ namespace EcomPlatform.Infrastructure.Services
 
         public async Task<ApiResponse<InvoiceResponseDto>> GenerateFromOrderAsync(Guid orderId)
         {
-            var existing = await _unitOfWork.Invoices.FindAsync(i => i.OrderId == orderId);
-            if (existing.Any())
+            // ✅ تحقق إن الفاتورة مش موجودة للـ Order العادي
+            var existingForOrder = await _unitOfWork.Invoices.FindAsync(i => i.OrderId.HasValue && i.OrderId.Value == orderId);
+            if (existingForOrder.Any())
                 return ApiResponse<InvoiceResponseDto>.Fail("Invoice already exists for this order");
 
+            // ✅ تحقق إن الفاتورة مش موجودة للـ POS Order
+            var existingForPosOrder = await _unitOfWork.Invoices.FindAsync(i => i.PosOrderId == orderId);
+            if (existingForPosOrder.Any())
+                return ApiResponse<InvoiceResponseDto>.Fail("Invoice already exists for this order");
+
+            // ✅ دور في الـ Orders العادية الأول
             var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
-            if (order == null)
+
+            if (order != null)
+            {
+                // ─── Normal Order ────────────────────────────────────────────
+                var orderItems = await _unitOfWork.OrderItems.FindAsync(i => i.OrderId == orderId);
+                var tenant = await _unitOfWork.Tenants.GetByIdAsync(order.TenantId ?? Guid.Empty);
+
+                var invoice = new Invoice
+                {
+                    InvoiceNumber = await GenerateInvoiceNumberAsync(),
+                    Status = order.PaymentStatus == PaymentStatus.Paid
+                        ? InvoiceStatus.Paid
+                        : InvoiceStatus.Unpaid,
+                    SubTotal = order.SubTotal,
+                    Tax = order.Tax,
+                    Discount = order.Discount,
+                    Total = order.Total,
+                    DueDate = DateTime.UtcNow.AddDays(7),
+                    PaidAt = order.PaidAt,
+                    CustomerName = order.CustomerName,
+                    CustomerEmail = order.CustomerEmail,
+                    CustomerPhone = order.CustomerPhone,
+                    CustomerAddress = $"{order.ShippingAddress}, {order.ShippingCity}, {order.ShippingCountry}",
+                    TenantId = order.TenantId,
+                    OrderId = orderId,       // ✅ Order عادي
+                    PosOrderId = null,       // ✅ مش POS
+                    Items = orderItems.Select(i => new InvoiceItem
+                    {
+                        Description = i.ProductName,
+                        Quantity = i.Quantity,
+                        UnitPrice = i.UnitPrice,
+                        TotalPrice = i.TotalPrice
+                    }).ToList()
+                };
+
+                var vatRate = 0.15m;
+                var subtotalExVat = invoice.SubTotal / (1 + vatRate);
+                var vatAmount = invoice.SubTotal - subtotalExVat;
+                invoice.QrCodeBase64 = GenerateQrCode(invoice, tenant!, subtotalExVat, vatAmount);
+                invoice.ZatcaXml = GenerateZatcaXml(invoice, orderItems.ToList(), tenant, subtotalExVat, vatAmount, invoice.Total);
+
+                await _unitOfWork.Invoices.AddAsync(invoice);
+                await _unitOfWork.SaveChangesAsync();
+
+                invoice.Order = order;
+
+                if (!string.IsNullOrEmpty(invoice.CustomerEmail))
+                {
+                    _ = _emailService.SendInvoiceAsync(
+                        invoice.CustomerEmail,
+                        invoice.CustomerName,
+                        invoice.InvoiceNumber,
+                        invoice.Total,
+                        invoice.DueDate);
+                }
+
+                return ApiResponse<InvoiceResponseDto>.Ok(MapToDto(invoice), "Invoice generated successfully");
+            }
+
+            // ✅ لو مش Order عادي — دور في POS Orders
+            var posOrder = await _unitOfWork.PosOrders.GetByIdAsync(orderId);
+            if (posOrder == null)
                 return ApiResponse<InvoiceResponseDto>.Fail("Order not found");
 
-            var orderItems = await _unitOfWork.OrderItems.FindAsync(i => i.OrderId == orderId);
-            var tenant = await _unitOfWork.Tenants.GetByIdAsync(order.TenantId ?? Guid.Empty);
+            // ✅ جيب POS Order Items
+            var posOrderItems = await _unitOfWork.PosOrderItems.FindAsync(i => i.PosOrderId == posOrder.Id);
+            var posTenant = posOrder.TenantId.HasValue
+                ? await _unitOfWork.Tenants.GetByIdAsync(posOrder.TenantId.Value)
+                : null;
 
-            var invoice = new Invoice
+            var posInvoice = new Invoice
             {
                 InvoiceNumber = await GenerateInvoiceNumberAsync(),
-                Status = order.PaymentStatus == PaymentStatus.Paid
-                    ? InvoiceStatus.Paid
-                    : InvoiceStatus.Unpaid,
-                SubTotal = order.SubTotal,
-                Tax = order.Tax,
-                Discount = order.Discount,
-                Total = order.Total,
-                DueDate = DateTime.UtcNow.AddDays(7),
-                PaidAt = order.PaidAt,
-                CustomerName = order.CustomerName,
-                CustomerEmail = order.CustomerEmail,
-                CustomerPhone = order.CustomerPhone,
-                CustomerAddress = $"{order.ShippingAddress}, {order.ShippingCity}, {order.ShippingCountry}",
-                TenantId = order.TenantId,
-                OrderId = orderId,
-                Items = orderItems.Select(i => new InvoiceItem
+                Status = InvoiceStatus.Paid, // POS دايماً مدفوع في الحال
+                SubTotal = posOrder.SubTotal,
+                Tax = posOrder.TaxAmount,
+                Discount = posOrder.DiscountAmount,
+                Total = posOrder.Total,
+                DueDate = DateTime.UtcNow,
+                PaidAt = posOrder.CreatedAt,
+                CustomerName = string.IsNullOrWhiteSpace(posOrder.CustomerName)
+                    ? "عميل نقدي"
+                    : posOrder.CustomerName,
+                CustomerEmail = string.Empty,
+                CustomerPhone = posOrder.CustomerPhone ?? string.Empty,
+                CustomerAddress = string.Empty,
+                TenantId = posOrder.TenantId,
+                OrderId = null,              // ✅ مش Order عادي
+                PosOrderId = posOrder.Id,    // ✅ POS Order
+                Items = posOrderItems.Select(i => new InvoiceItem
                 {
                     Description = i.ProductName,
                     Quantity = i.Quantity,
@@ -65,28 +137,29 @@ namespace EcomPlatform.Infrastructure.Services
                 }).ToList()
             };
 
-            var vatRate = 0.15m;
-            var subtotalExVat = invoice.SubTotal / (1 + vatRate);
-            var vatAmount = invoice.SubTotal - subtotalExVat;
-            invoice.QrCodeBase64 = GenerateQrCode(invoice, tenant!, subtotalExVat, vatAmount);
-            invoice.ZatcaXml = GenerateZatcaXml(invoice, orderItems.ToList(), tenant, subtotalExVat, vatAmount, invoice.Total);
+            var posVatRate = 0.15m;
+            var posSubtotalExVat = posInvoice.SubTotal / (1 + posVatRate);
+            var posVatAmount = posInvoice.SubTotal - posSubtotalExVat;
+            posInvoice.QrCodeBase64 = GenerateQrCode(posInvoice, posTenant!, posSubtotalExVat, posVatAmount);
+            posInvoice.ZatcaXml = GenerateZatcaXml(
+                posInvoice,
+                posOrderItems.Select(i => new OrderItem
+                {
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    TotalPrice = i.TotalPrice
+                }).ToList(),
+                posTenant,
+                posSubtotalExVat,
+                posVatAmount,
+                posInvoice.Total
+            );
 
-            await _unitOfWork.Invoices.AddAsync(invoice);
+            await _unitOfWork.Invoices.AddAsync(posInvoice);
             await _unitOfWork.SaveChangesAsync();
 
-            invoice.Order = order;
-
-            if (!string.IsNullOrEmpty(invoice.CustomerEmail))
-            {
-                _ = _emailService.SendInvoiceAsync(
-                    invoice.CustomerEmail,
-                    invoice.CustomerName,
-                    invoice.InvoiceNumber,
-                    invoice.Total,
-                    invoice.DueDate);
-            }
-
-            return ApiResponse<InvoiceResponseDto>.Ok(MapToDto(invoice), "Invoice generated successfully");
+            return ApiResponse<InvoiceResponseDto>.Ok(MapToDto(posInvoice), "Invoice generated successfully");
         }
 
         public async Task<ApiResponse<InvoiceResponseDto>> GetByIdAsync(Guid id)
@@ -98,8 +171,11 @@ namespace EcomPlatform.Infrastructure.Services
             var items = await _unitOfWork.InvoiceItems.FindAsync(i => i.InvoiceId == id);
             invoice.Items = items.ToList();
 
-            var order = await _unitOfWork.Orders.GetByIdAsync(invoice.OrderId);
-            invoice.Order = order;
+            if (invoice.OrderId.HasValue)
+            {
+                var order = await _unitOfWork.Orders.GetByIdAsync(invoice.OrderId.Value);
+                invoice.Order = order;
+            }
 
             return ApiResponse<InvoiceResponseDto>.Ok(MapToDto(invoice));
         }
@@ -110,7 +186,10 @@ namespace EcomPlatform.Infrastructure.Services
             if (invoice == null)
                 return ApiResponse<InvoiceResponseDto>.Fail("Invoice not found");
 
-            var order = await _unitOfWork.Orders.GetByIdAsync(invoice.OrderId);
+            if (!invoice.OrderId.HasValue)
+                return ApiResponse<InvoiceResponseDto>.Fail("Invoice not found");
+
+            var order = await _unitOfWork.Orders.GetByIdAsync(invoice.OrderId.Value);
             if (order == null || order.CustomerId != customerId)
                 return ApiResponse<InvoiceResponseDto>.Fail("Invoice not found");
 
@@ -126,7 +205,7 @@ namespace EcomPlatform.Infrastructure.Services
             var orders = await _unitOfWork.Orders.FindAsync(o => o.CustomerId == customerId);
             var orderIds = orders.Select(o => o.Id).ToHashSet();
             var orderMap = orders.ToDictionary(o => o.Id);
-            var all = await _unitOfWork.Invoices.FindAsync(i => orderIds.Contains(i.OrderId));
+            var all = await _unitOfWork.Invoices.FindAsync(i => i.OrderId.HasValue && orderIds.Contains(i.OrderId.Value));
             var totalCount = all.Count();
 
             var paged = all
@@ -139,7 +218,8 @@ namespace EcomPlatform.Infrastructure.Services
             {
                 var items = await _unitOfWork.InvoiceItems.FindAsync(i => i.InvoiceId == invoice.Id);
                 invoice.Items = items.ToList();
-                invoice.Order = orderMap.GetValueOrDefault(invoice.OrderId);
+                if (invoice.OrderId.HasValue)
+                    if (orderMap.TryGetValue(invoice.OrderId.Value, out var mappedOrder)) invoice.Order = mappedOrder;
             }
 
             var result = PagedResponse<InvoiceResponseDto>.Create(paged.Select(MapToDto).ToList(), totalCount, pagination);
@@ -148,7 +228,7 @@ namespace EcomPlatform.Infrastructure.Services
 
         public async Task<ApiResponse<InvoiceResponseDto>> GetByOrderIdAsync(Guid orderId)
         {
-            var invoices = await _unitOfWork.Invoices.FindAsync(i => i.OrderId == orderId);
+            var invoices = await _unitOfWork.Invoices.FindAsync(i => i.OrderId.HasValue && i.OrderId.Value == orderId);
             var invoice = invoices.FirstOrDefault();
 
             if (invoice == null)
@@ -157,8 +237,11 @@ namespace EcomPlatform.Infrastructure.Services
             var items = await _unitOfWork.InvoiceItems.FindAsync(i => i.InvoiceId == invoice.Id);
             invoice.Items = items.ToList();
 
-            var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
-            invoice.Order = order;
+            if (invoice.OrderId.HasValue)
+            {
+                var order = await _unitOfWork.Orders.GetByIdAsync(invoice.OrderId.Value);
+                invoice.Order = order;
+            }
 
             return ApiResponse<InvoiceResponseDto>.Ok(MapToDto(invoice));
         }
@@ -197,7 +280,6 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.Invoices.UpdateAsync(invoice);
             await _unitOfWork.SaveChangesAsync();
 
-            // ✅ قيد محاسبي تلقائي عند دفع الفاتورة
             if (status == InvoiceStatus.Paid && invoice.TenantId.HasValue)
                 await _accountingService.CreateInvoicePaidEntryAsync(invoice.Id, invoice.TenantId.Value);
 
@@ -325,8 +407,8 @@ namespace EcomPlatform.Infrastructure.Services
             CustomerPhone = invoice.CustomerPhone,
             CustomerAddress = invoice.CustomerAddress,
             TenantId = invoice.TenantId ?? Guid.Empty,
-            OrderId = invoice.OrderId,
-            OrderNumber = invoice.Order?.OrderNumber ?? string.Empty,
+            OrderId = invoice.OrderId ?? Guid.Empty,
+            OrderNumber = invoice.Order?.OrderNumber ?? invoice.PosOrder?.ReceiptNumber ?? string.Empty,
             CreatedAt = invoice.CreatedAt,
             QrCodeBase64 = invoice.QrCodeBase64,
             Items = invoice.Items?.Select(i => new InvoiceItemResponseDto

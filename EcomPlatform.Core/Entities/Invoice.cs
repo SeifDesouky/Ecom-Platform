@@ -27,8 +27,14 @@ namespace EcomPlatform.Core.Entities
         // Relations
         public Guid? TenantId { get; set; }
         public Tenant? Tenant { get; set; }
-        public Guid OrderId { get; set; }
+
+        // ✅ Order عادي (nullable الآن)
+        public Guid? OrderId { get; set; }
         public Order? Order { get; set; }
+
+        // ✅ POS Order (جديد)
+        public Guid? PosOrderId { get; set; }
+        public PosOrder? PosOrder { get; set; }
 
         // Navigation
         public ICollection<InvoiceItem> Items { get; set; } = new List<InvoiceItem>();

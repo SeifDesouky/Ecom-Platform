@@ -27,16 +27,14 @@ namespace EcomPlatform.Infrastructure.Services
             if (tenant == null)
                 return ApiResponse<VatSummaryDto>.Fail("Tenant not found.");
 
-            // ── جلب الفواتير في النطاق الزمني ────────────────────────────────
             var dateFrom = filter.DateFrom.Date;
-            var dateTo = filter.DateTo.Date.AddDays(1).AddTicks(-1); // نهاية اليوم
+            var dateTo = filter.DateTo.Date.AddDays(1).AddTicks(-1);
 
             var allInvoices = await _unitOfWork.Invoices.FindAsync(i =>
                 i.TenantId == filter.TenantId &&
                 i.CreatedAt >= dateFrom &&
                 i.CreatedAt <= dateTo);
 
-            // فلترة بالحالة لو محددة
             if (!string.IsNullOrWhiteSpace(filter.Status))
             {
                 if (Enum.TryParse<InvoiceStatus>(filter.Status, true, out var statusEnum))
@@ -45,14 +43,16 @@ namespace EcomPlatform.Infrastructure.Services
 
             var invoices = allInvoices.ToList();
 
-            // ── جلب أرقام الأوردرات دفعة واحدة ──────────────────────────────
-            var orderIds = invoices.Select(i => i.OrderId).ToHashSet();
-            var orders = (await _unitOfWork.Orders.FindAsync(o =>
-                                   orderIds.Contains(o.Id)))
-                              .ToDictionary(o => o.Id);
+            // ✅ جيب الـ OrderIds الـ non-null بس
+            var orderIds = invoices
+                .Where(i => i.OrderId.HasValue)
+                .Select(i => i.OrderId!.Value)
+                .ToHashSet();
 
-            // ── حساب VAT ─────────────────────────────────────────────────────
-            var vatRate = tenant.VatRate;          // مثال: 0.15
+            var orders = (await _unitOfWork.Orders.FindAsync(o => orderIds.Contains(o.Id)))
+                .ToDictionary(o => o.Id);
+
+            var vatRate = tenant.VatRate;
             var lines = new List<VatInvoiceLineDto>();
             decimal totalSales = 0;
             decimal totalSalesExVat = 0;
@@ -64,7 +64,6 @@ namespace EcomPlatform.Infrastructure.Services
 
             foreach (var inv in invoices.OrderBy(i => i.CreatedAt))
             {
-                // VAT مضمَّن في SubTotal (Inclusive) — نحسب منه
                 var subTotalIncl = inv.SubTotal;
                 var subTotalExVat = Math.Round(subTotalIncl / (1 + vatRate), 2);
                 var vatAmount = Math.Round(subTotalIncl - subTotalExVat, 2);
@@ -74,18 +73,23 @@ namespace EcomPlatform.Infrastructure.Services
                 totalVatCollected += vatAmount;
                 totalDiscount += inv.Discount;
 
-                // الشحن من الأوردر
-                if (orders.TryGetValue(inv.OrderId, out var order))
+                // ✅ تحقق إن OrderId مش null قبل ما تستخدمه
+                if (inv.OrderId.HasValue && orders.TryGetValue(inv.OrderId.Value, out var order))
                     totalShipping += order.ShippingCost;
 
                 if (inv.Status == InvoiceStatus.Paid) paidCount++;
                 else unpaidCount++;
 
+                // ✅ جيب OrderNumber بأمان
+                var orderNumber = inv.OrderId.HasValue && orders.TryGetValue(inv.OrderId.Value, out var linkedOrder)
+                    ? linkedOrder.OrderNumber
+                    : string.Empty;
+
                 lines.Add(new VatInvoiceLineDto
                 {
                     InvoiceId = inv.Id,
                     InvoiceNumber = inv.InvoiceNumber,
-                    OrderNumber = orders.GetValueOrDefault(inv.OrderId)?.OrderNumber ?? string.Empty,
+                    OrderNumber = orderNumber,
                     InvoiceDate = inv.CreatedAt,
                     PaidAt = inv.PaidAt,
                     Status = inv.Status.ToString(),
@@ -99,7 +103,6 @@ namespace EcomPlatform.Infrastructure.Services
                 });
             }
 
-            // ── التوزيع الشهري ────────────────────────────────────────────────
             var monthly = invoices
                 .GroupBy(i => new { i.CreatedAt.Year, i.CreatedAt.Month })
                 .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
@@ -134,7 +137,7 @@ namespace EcomPlatform.Infrastructure.Services
                 TotalVatCollected = Math.Round(totalVatCollected, 2),
                 TotalDiscount = Math.Round(totalDiscount, 2),
                 TotalShipping = Math.Round(totalShipping, 2),
-                NetVatPayable = Math.Round(totalVatCollected, 2),   // لو في VAT مدفوع على مشتريات يُطرح هنا
+                NetVatPayable = Math.Round(totalVatCollected, 2),
                 TotalInvoices = invoices.Count,
                 PaidInvoices = paidCount,
                 UnpaidInvoices = unpaidCount,
@@ -160,7 +163,6 @@ namespace EcomPlatform.Infrastructure.Services
             var summary = summaryResult.Data!;
             var sb = new StringBuilder();
 
-            // ── Header Info ───────────────────────────────────────────────────
             sb.AppendLine($"VAT Tax Report");
             sb.AppendLine($"Tenant,{Escape(summary.TenantName)}");
             sb.AppendLine($"VAT Number,{Escape(summary.VatNumber)}");
@@ -168,7 +170,6 @@ namespace EcomPlatform.Infrastructure.Services
             sb.AppendLine($"Generated At,{summary.GeneratedAt:yyyy-MM-dd HH:mm:ss} UTC");
             sb.AppendLine();
 
-            // ── Summary ───────────────────────────────────────────────────────
             sb.AppendLine("SUMMARY");
             sb.AppendLine($"Total Invoices,{summary.TotalInvoices}");
             sb.AppendLine($"Paid Invoices,{summary.PaidInvoices}");
@@ -181,7 +182,6 @@ namespace EcomPlatform.Infrastructure.Services
             sb.AppendLine($"Net VAT Payable,{summary.NetVatPayable:F2}");
             sb.AppendLine();
 
-            // ── Monthly Breakdown ─────────────────────────────────────────────
             sb.AppendLine("MONTHLY BREAKDOWN");
             sb.AppendLine("Month,Invoices,Sales (excl. VAT),VAT Collected,Total (incl. VAT)");
             foreach (var m in summary.MonthlyBreakdown)
@@ -190,7 +190,6 @@ namespace EcomPlatform.Infrastructure.Services
             }
             sb.AppendLine();
 
-            // ── Invoice Lines ─────────────────────────────────────────────────
             sb.AppendLine("INVOICE DETAILS");
             sb.AppendLine("Invoice #,Order #,Date,Paid At,Status,Customer,Email,SubTotal (excl. VAT),Discount,VAT Amount,Total (incl. VAT)");
             foreach (var inv in summary.Invoices)
@@ -215,21 +214,17 @@ namespace EcomPlatform.Infrastructure.Services
         }
 
         // ════════════════════════════════════════════════════════════════
-        // EXPORT — Excel (.xlsx)  — بدون dependency خارجية
-        // الـ Excel بيتعمل كـ CSV بـ MIME type يفتحه Excel
-        // لو الـ XLSX المحتاج فيه formatting محتاج تضيف ClosedXML
+        // EXPORT — Excel (.xlsx)
         // ════════════════════════════════════════════════════════════════
 
         public async Task<byte[]> ExportExcelAsync(TaxReportFilterDto filter)
         {
-            // نفس CSV لكن بـ tab separator — Excel يفتحه بدون مكتبة
             var summaryResult = await GetVatSummaryAsync(filter);
             if (!summaryResult.Success) return Array.Empty<byte>();
 
             var summary = summaryResult.Data!;
             var sb = new StringBuilder();
 
-            // Summary sheet
             sb.AppendLine("VAT Tax Report\t\t\t");
             sb.AppendLine($"Tenant\t{summary.TenantName}\t\t");
             sb.AppendLine($"VAT Number\t{summary.VatNumber}\t\t");
@@ -266,7 +261,6 @@ namespace EcomPlatform.Infrastructure.Services
         // PRIVATE HELPERS
         // ════════════════════════════════════════════════════════════════
 
-        /// <summary>Escape CSV field — يغلّف الحقل بـ quotes لو فيه فاصلة أو quotes</summary>
         private static string Escape(string? value)
         {
             if (string.IsNullOrEmpty(value)) return string.Empty;

@@ -121,6 +121,44 @@ namespace EcomPlatform.API.Controllers
 
             return Ok(result);
         }
+        // DELETE api/products/bulk
+        [HttpDelete("bulk")]
+        public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
+        {
+            if (ids == null || ids.Count == 0)
+                return BadRequest(new { Success = false, Message = "No IDs provided" });
+
+            var tenantId = GetTenantIdFromClaims();
+            if (tenantId == null)
+                return Unauthorized();
+
+            var deletedIds = new List<string>();
+            var failedIds = new List<string>();
+
+            foreach (var id in ids)
+            {
+                var existing = await _productService.GetByIdAsync(id);
+                var result = await _productService.DeleteAsync(id);
+
+                if (result.Success)
+                {
+                    deletedIds.Add(id.ToString());
+                    await LogAudit("Product", id.ToString(),
+                        AuditAction.Delete, tenantId,
+                        oldValue: $"Product '{existing.Data?.Name}' bulk deleted");
+                }
+                else
+                {
+                    failedIds.Add(id.ToString());
+                }
+            }
+
+            return Ok(new
+            {
+                Success = true,
+                Data = new { Deleted = deletedIds.Count, Failed = failedIds.Count, FailedIds = failedIds }
+            });
+        }
 
         // PATCH api/products/{id}/toggle-status
         [HttpPatch("{id}/toggle-status")]
