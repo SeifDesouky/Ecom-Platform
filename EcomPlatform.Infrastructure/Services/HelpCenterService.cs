@@ -4,6 +4,7 @@ using EcomPlatform.Application.Services.Interfaces;
 using EcomPlatform.Core.Entities;
 using EcomPlatform.Core.Enums;
 using EcomPlatform.Core.Interfaces;
+using System.Text.RegularExpressions;
 
 namespace EcomPlatform.Infrastructure.Services
 {
@@ -16,21 +17,36 @@ namespace EcomPlatform.Infrastructure.Services
             _unitOfWork = unitOfWork;
         }
 
+        // ── Slug Helper ───────────────────────────────────────────────────────
+        private static string GenerateSlug(string value)
+        {
+            var slug = value.ToLower().Trim();
+            slug = Regex.Replace(slug, @"[\s_]+", "-");
+            slug = Regex.Replace(slug, @"[^a-z0-9-]", "");
+            slug = Regex.Replace(slug, @"-+", "-");
+            return slug.Trim('-');
+        }
+
         // ════════════════════════════════════════════════════════════════════
         // CATEGORIES
         // ════════════════════════════════════════════════════════════════════
 
         public async Task<ApiResponse<HelpCategoryResponseDto>> CreateCategoryAsync(CreateHelpCategoryDto dto)
         {
+            // ✅ auto-generate الـ Slug لو جاء فاضي
+            var slug = !string.IsNullOrWhiteSpace(dto.Slug)
+                ? dto.Slug.ToLower().Trim()
+                : GenerateSlug(dto.Name);
+
             var existing = await _unitOfWork.HelpCategories.FindAsync(
-                c => c.Slug == dto.Slug && c.TenantId == dto.TenantId);
+                c => c.Slug == slug && c.TenantId == dto.TenantId);
             if (existing.Any())
                 return ApiResponse<HelpCategoryResponseDto>.Fail("A category with this slug already exists");
 
             var category = new HelpCategory
             {
                 Name = dto.Name,
-                Slug = dto.Slug.ToLower().Trim(),
+                Slug = slug,
                 Description = dto.Description,
                 Icon = dto.Icon,
                 SortOrder = dto.SortOrder,
@@ -163,15 +179,20 @@ namespace EcomPlatform.Infrastructure.Services
             if (category == null)
                 return ApiResponse<HelpArticleResponseDto>.Fail("Category not found");
 
+            // ✅ auto-generate الـ Slug لو جاء فاضي
+            var slug = !string.IsNullOrWhiteSpace(dto.Slug)
+                ? dto.Slug.ToLower().Trim()
+                : GenerateSlug(dto.Title);
+
             var existing = await _unitOfWork.HelpArticles.FindAsync(
-                a => a.Slug == dto.Slug && a.TenantId == dto.TenantId);
+                a => a.Slug == slug && a.TenantId == dto.TenantId);
             if (existing.Any())
                 return ApiResponse<HelpArticleResponseDto>.Fail("An article with this slug already exists");
 
             var article = new HelpArticle
             {
                 Title = dto.Title,
-                Slug = dto.Slug.ToLower().Trim(),
+                Slug = slug,
                 Content = dto.Content,
                 Excerpt = dto.Excerpt,
                 Tags = dto.Tags,
@@ -214,12 +235,34 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<HelpArticleResponseDto>.Ok(MapArticle(article));
         }
 
-        // ✅ التعديل — استخدام FindWithoutFilterAsync للسوبر أدمن
+        // ✅ Public — Published فقط
         public async Task<ApiResponse<PagedResponse<HelpArticleResponseDto>>> GetArticlesByCategoryAsync(
             Guid categoryId, PaginationParams pagination)
         {
             var all = await _unitOfWork.HelpArticles.FindWithoutFilterAsync(
                 a => a.HelpCategoryId == categoryId && a.Status == ArticleStatus.Published);
+
+            var total = all.Count();
+            var items = all
+                .OrderBy(a => a.SortOrder)
+                .Skip(pagination.Skip)
+                .Take(pagination.PageSize)
+                .ToList();
+
+            foreach (var item in items)
+                await LoadArticleNavigationsAsync(item);
+
+            var result = PagedResponse<HelpArticleResponseDto>.Create(
+                items.Select(MapArticle).ToList(), total, pagination);
+            return ApiResponse<PagedResponse<HelpArticleResponseDto>>.Ok(result);
+        }
+
+        // ✅ Admin — كل المقالات بدون فلتر Status (Draft + Published)
+        public async Task<ApiResponse<PagedResponse<HelpArticleResponseDto>>> GetArticlesByCategoryAdminAsync(
+            Guid categoryId, PaginationParams pagination)
+        {
+            var all = await _unitOfWork.HelpArticles.FindWithoutFilterAsync(
+                a => a.HelpCategoryId == categoryId);
 
             var total = all.Count();
             var items = all
@@ -338,18 +381,18 @@ namespace EcomPlatform.Infrastructure.Services
                 Query = query,
                 TotalResults = articles.Count(),
                 Articles = articles.OrderByDescending(a => a.ViewCount)
-                                   .Select(a => new HelpArticleSummaryDto
-                                   {
-                                       Id = a.Id,
-                                       Title = a.Title,
-                                       Slug = a.Slug,
-                                       Excerpt = a.Excerpt,
-                                       IsFAQ = a.IsFAQ,
-                                       ViewCount = a.ViewCount,
-                                       HelpfulCount = a.HelpfulCount,
-                                       SortOrder = a.SortOrder,
-                                       PublishedAt = a.PublishedAt
-                                   }).ToList()
+                                       .Select(a => new HelpArticleSummaryDto
+                                       {
+                                           Id = a.Id,
+                                           Title = a.Title,
+                                           Slug = a.Slug,
+                                           Excerpt = a.Excerpt,
+                                           IsFAQ = a.IsFAQ,
+                                           ViewCount = a.ViewCount,
+                                           HelpfulCount = a.HelpfulCount,
+                                           SortOrder = a.SortOrder,
+                                           PublishedAt = a.PublishedAt
+                                       }).ToList()
             };
 
             return ApiResponse<HelpSearchResultDto>.Ok(result);
@@ -404,19 +447,19 @@ namespace EcomPlatform.Infrastructure.Services
             TenantId = c.TenantId,
             CreatedAt = c.CreatedAt,
             Articles = c.Articles?.Where(a => a.Status == ArticleStatus.Published)
-                                   .OrderBy(a => a.SortOrder)
-                                   .Select(a => new HelpArticleSummaryDto
-                                   {
-                                       Id = a.Id,
-                                       Title = a.Title,
-                                       Slug = a.Slug,
-                                       Excerpt = a.Excerpt,
-                                       IsFAQ = a.IsFAQ,
-                                       ViewCount = a.ViewCount,
-                                       HelpfulCount = a.HelpfulCount,
-                                       SortOrder = a.SortOrder,
-                                       PublishedAt = a.PublishedAt
-                                   }).ToList() ?? new()
+                                       .OrderBy(a => a.SortOrder)
+                                       .Select(a => new HelpArticleSummaryDto
+                                       {
+                                           Id = a.Id,
+                                           Title = a.Title,
+                                           Slug = a.Slug,
+                                           Excerpt = a.Excerpt,
+                                           IsFAQ = a.IsFAQ,
+                                           ViewCount = a.ViewCount,
+                                           HelpfulCount = a.HelpfulCount,
+                                           SortOrder = a.SortOrder,
+                                           PublishedAt = a.PublishedAt
+                                       }).ToList() ?? new()
         };
 
         private static HelpArticleResponseDto MapArticle(HelpArticle a) => new()
@@ -439,8 +482,8 @@ namespace EcomPlatform.Infrastructure.Services
             HelpCategoryId = a.HelpCategoryId,
             HelpCategoryName = a.HelpCategory?.Name ?? string.Empty,
             AuthorName = a.Author != null
-                            ? $"{a.Author.FirstName} {a.Author.LastName}".Trim()
-                            : string.Empty,
+                                ? $"{a.Author.FirstName} {a.Author.LastName}".Trim()
+                                : string.Empty,
             TenantId = a.TenantId,
             PublishedAt = a.PublishedAt,
             CreatedAt = a.CreatedAt

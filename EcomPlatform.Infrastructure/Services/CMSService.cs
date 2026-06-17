@@ -141,13 +141,13 @@ namespace EcomPlatform.Infrastructure.Services
                 PublishedAt = dto.IsPublished ? DateTime.UtcNow : null,
                 Tags = dto.Tags,
                 TenantId = dto.TenantId,
-                AuthorId = dto.AuthorId
+                AuthorId = dto.AuthorId ?? Guid.Empty
             };
 
             await _unitOfWork.Articles.AddAsync(article);
             await _unitOfWork.SaveChangesAsync();
 
-            var author = await _unitOfWork.Users.GetByIdAsync(dto.AuthorId);
+            var author = await _unitOfWork.Users.GetByIdAsync(article.AuthorId);
             article.Author = author;
 
             return ApiResponse<ArticleResponseDto>.Ok(MapArticleToDto(article), "Article created successfully");

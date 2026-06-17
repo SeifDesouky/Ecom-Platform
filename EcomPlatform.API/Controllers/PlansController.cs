@@ -124,9 +124,10 @@ namespace EcomPlatform.API.Controllers
         [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> GetAllSubscriptions(
             [FromQuery] int page = 1,
-            [FromQuery] int limit = 20)
+            [FromQuery] int limit = 20,
+            [FromQuery] string? status = null)
         {
-            var result = await _planService.GetAllSubscriptionsAsync(page, limit);
+            var result = await _planService.GetAllSubscriptionsAsync(page, limit, status);
             return Ok(result);
         }
 

@@ -12,6 +12,6 @@
         public bool IsPublished { get; set; } = false;
         public string Tags { get; set; } = string.Empty;
         public Guid? TenantId { get; set; }
-        public Guid AuthorId { get; set; }
+        public Guid? AuthorId { get; set; }
     }
 }

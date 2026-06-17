@@ -112,11 +112,17 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<bool>.Ok(true, plan.IsActive ? "Plan activated" : "Plan deactivated");
         }
 
-        public async Task<ApiResponse<IEnumerable<SubscriptionResponseDto>>> GetAllSubscriptionsAsync(int page, int limit)
+        public async Task<ApiResponse<IEnumerable<SubscriptionResponseDto>>> GetAllSubscriptionsAsync(int page, int limit, string? status = null)
         {
             var all = await _unitOfWork.Subscriptions.GetAllAsync();
 
-            var paged = all
+            var filtered = all.AsEnumerable();
+
+            // فلتر الـ status قبل الـ pagination
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<SubscriptionStatus>(status, true, out var statusEnum))
+                filtered = filtered.Where(s => s.Status == statusEnum);
+
+            var paged = filtered
                 .OrderByDescending(s => s.CreatedAt)
                 .Skip((page - 1) * limit)
                 .Take(limit)

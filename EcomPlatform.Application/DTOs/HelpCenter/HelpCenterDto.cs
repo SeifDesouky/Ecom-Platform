@@ -9,7 +9,8 @@ namespace EcomPlatform.Application.DTOs.HelpCenter
         [Required, MaxLength(200)]
         public string Name { get; set; } = string.Empty;
 
-        [Required, MaxLength(200)]
+        // ✅ شيلنا [Required] — الـ Service بتولّده تلقائياً من الاسم لو جاء فاضي
+        [MaxLength(200)]
         public string Slug { get; set; } = string.Empty;
 
         public string Description { get; set; } = string.Empty;
@@ -33,7 +34,8 @@ namespace EcomPlatform.Application.DTOs.HelpCenter
         [Required, MaxLength(500)]
         public string Title { get; set; } = string.Empty;
 
-        [Required, MaxLength(500)]
+        // ✅ شيلنا [Required] — الـ Service بتولّده تلقائياً من العنوان لو جاء فاضي
+        [MaxLength(500)]
         public string Slug { get; set; } = string.Empty;
 
         [Required]

@@ -4,6 +4,7 @@ using EcomPlatform.Application.DTOs.CMS;
 using EcomPlatform.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace EcomPlatform.API.Controllers
 {
@@ -30,7 +31,6 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // ✅ جديد — السوبر ادمن بدون tenantId
         [HttpGet("pages")]
         [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> GetAllPagesAdmin([FromQuery] PaginationParams pagination)
@@ -103,7 +103,6 @@ namespace EcomPlatform.API.Controllers
             return Ok(result);
         }
 
-        // ✅ جديد — السوبر ادمن بدون tenantId
         [HttpGet("articles")]
         [Authorize(Policy = Policies.SuperAdminOnly)]
         public async Task<IActionResult> GetAllArticlesAdmin([FromQuery] PaginationParams pagination)
@@ -134,6 +133,15 @@ namespace EcomPlatform.API.Controllers
         [Authorize(Policy = Policies.TenantAdminOrAbove)]
         public async Task<IActionResult> CreateArticle([FromBody] CreateArticleDto dto)
         {
+            // ── خذ الـ AuthorId من الـ JWT Token تلقائياً ──────────────────────
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                           ?? User.FindFirst("sub")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var authorGuid))
+                return Unauthorized(ApiResponse<object>.Fail("لا يمكن تحديد هوية المستخدم."));
+
+            dto.AuthorId = authorGuid;
+
             var result = await _cmsService.CreateArticleAsync(dto);
             if (!result.Success) return BadRequest(result);
             return Ok(result);
