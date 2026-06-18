@@ -1,4 +1,8 @@
-﻿using EcomPlatform.Application.Common;
+﻿// ================================================================
+// EcomPlatform.Infrastructure/Services/AuthService.cs  — UPDATED
+// التغيير: إضافة OnboardStoreAsync فقط في الأسفل — باقي الملف كما هو
+// ================================================================
+using EcomPlatform.Application.Common;
 using EcomPlatform.Application.DTOs.Auth;
 using EcomPlatform.Application.Services.Interfaces;
 using EcomPlatform.Core.Entities;
@@ -336,6 +340,7 @@ namespace EcomPlatform.Infrastructure.Services
             }, "Registered successfully");
         }
 
+        // ── Login ─────────────────────────────────────────────────────────────
         public async Task<ApiResponse<AuthResponseDto>> LoginAsync(
             string? ipAddress,
             string? deviceInfo,
@@ -399,6 +404,7 @@ namespace EcomPlatform.Infrastructure.Services
             }, "Login successful");
         }
 
+        // ── Refresh Token ─────────────────────────────────────────────────────
         public async Task<ApiResponse<AuthResponseDto>> RefreshTokenAsync(
             string plainRefreshToken,
             string? ipAddress,
@@ -462,6 +468,7 @@ namespace EcomPlatform.Infrastructure.Services
             }, "Token refreshed");
         }
 
+        // ── Revoke / Sessions ─────────────────────────────────────────────────
         public async Task<ApiResponse<bool>> RevokeTokenAsync(string plainRefreshToken, Guid userId)
         {
             var tokenHash = HashToken(plainRefreshToken);
@@ -531,6 +538,7 @@ namespace EcomPlatform.Infrastructure.Services
             return ApiResponse<List<ActiveSessionDto>>.Ok(sessions);
         }
 
+        // ── Forgot / Reset / Verify ───────────────────────────────────────────
         public async Task<ApiResponse<bool>> ForgotPasswordAsync(ForgotPasswordDto dto)
         {
             var users = await _unitOfWork.Users.FindAsync(u => u.Email == dto.Email);
@@ -606,6 +614,79 @@ namespace EcomPlatform.Infrastructure.Services
             await _unitOfWork.SaveChangesAsync();
 
             return ApiResponse<bool>.Ok(true, "Email verified successfully");
+        }
+
+        // ✅ ── Onboard Store ───────────────────────────────────────────────────
+        public async Task<ApiResponse<AuthResponseDto>> OnboardStoreAsync(Guid userId, OnboardStoreDto dto)
+        {
+            // 1. جيب الـ user وتأكد إنه موجود وفعّال
+            var user = await _unitOfWork.Users.GetByIdAsync(userId);
+            if (user == null || !user.IsActive)
+                return ApiResponse<AuthResponseDto>.Fail("User not found or disabled");
+
+            // 2. تأكد إنه TenantAdmin من غير Tenant — مش سبق اتوصل بمتجر
+            if (user.TenantId.HasValue)
+                return ApiResponse<AuthResponseDto>.Fail("A store is already linked to this account");
+
+            // 3. تأكد إن الـ Slug مش مكرر
+            var slugExists = await _unitOfWork.Tenants.FindAsync(t => t.Slug == dto.Slug);
+            if (slugExists.Any())
+                return ApiResponse<AuthResponseDto>.Fail("This store URL (slug) is already taken, please choose another");
+
+            // 4. إنشاء الـ Tenant (المتجر)
+            var tenant = new Tenant
+            {
+                Name = dto.Name,
+                Slug = dto.Slug,
+                Email = dto.Email,
+                Phone = dto.Phone,
+                Logo = dto.Logo ?? string.Empty,
+                Domain = dto.Domain ?? string.Empty,
+                VatNumber = dto.VatNumber,
+                VatRate = dto.VatRate,
+                IsActive = true,
+                SubscriptionEndDate = DateTime.UtcNow.AddDays(14), // Trial مجاني 14 يوم
+            };
+
+            await _unitOfWork.Tenants.AddAsync(tenant);
+            await _unitOfWork.SaveChangesAsync(); // عشان نجيب tenant.Id
+
+            // 5. ربط الـ user بالـ Tenant الجديد
+            user.TenantId = tenant.Id;
+            await _unitOfWork.Users.UpdateAsync(user);
+            await _unitOfWork.SaveChangesAsync();
+
+            // 6. إصدار Access Token جديد فيه tenantId claim
+            //    (GenerateAccessToken بيقرأ user.TenantId تلقائياً)
+            var newAccessToken = GenerateAccessToken(user);
+
+            // 7. إصدار Refresh Token جديد
+            var (plainToken, tokenHash) = GenerateRefreshToken();
+            var refreshToken = new RefreshToken
+            {
+                UserId = user.Id,
+                TokenHash = tokenHash,
+                ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryInDays),
+            };
+            await _unitOfWork.RefreshTokens.AddAsync(refreshToken);
+            await _unitOfWork.SaveChangesAsync();
+
+            // 8. Audit Log
+            await _auditLogService.LogAsync(
+                entityName: "Tenant",
+                entityId: tenant.Id.ToString(),
+                action: AuditAction.Create,
+                userId: user.Id,
+                tenantId: tenant.Id,
+                newValue: $"Store '{tenant.Name}' (slug: {tenant.Slug}) created via onboarding by {user.Email}");
+
+            return ApiResponse<AuthResponseDto>.Ok(new AuthResponseDto
+            {
+                Token = newAccessToken,
+                RefreshToken = plainToken,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryInMinutes),
+                User = await MapToUserDtoAsync(user)
+            }, "Store created successfully! Welcome aboard 🎉");
         }
 
         // ── Private Helpers ───────────────────────────────────────────────────

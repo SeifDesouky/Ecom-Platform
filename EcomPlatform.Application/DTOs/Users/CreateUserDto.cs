@@ -11,5 +11,6 @@ namespace EcomPlatform.Application.DTOs.Users
         public string Password { get; set; } = string.Empty;
         public UserRole Role { get; set; } = UserRole.TenantStaff;
         public Guid? TenantId { get; set; }
+
     }
 }

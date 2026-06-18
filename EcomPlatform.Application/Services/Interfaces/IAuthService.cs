@@ -28,6 +28,9 @@ namespace EcomPlatform.Application.Services.Interfaces
         Task<ApiResponse<bool>> ForgotPasswordAsync(ForgotPasswordDto dto);
         Task<ApiResponse<bool>> ResetPasswordAsync(ResetPasswordDto dto);
         Task<ApiResponse<bool>> VerifyEmailAsync(VerifyEmailDto dto);
+        // في نهاية الـ interface — بعد LoginWithAppleAsync
+        Task<ApiResponse<AuthResponseDto>> OnboardStoreAsync(Guid userId, OnboardStoreDto dto);
+
 
         // ✅ جديد: Social Login
         Task<ApiResponse<AuthResponseDto>> LoginWithGoogleAsync(

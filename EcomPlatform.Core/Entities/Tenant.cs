@@ -11,6 +11,8 @@ namespace EcomPlatform.Core.Entities
         public string Phone { get; set; } = string.Empty;
         public string Logo { get; set; } = string.Empty;
         public string Domain { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string ThemeColor { get; set; } = "#10B981";
         public bool IsActive { get; set; } = true;
         public TenantStatus Status { get; set; } = TenantStatus.Active;
         public DateTime? SubscriptionEndDate { get; set; }

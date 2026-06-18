@@ -140,6 +140,18 @@ namespace EcomPlatform.API.Controllers
             var result = await _authService.VerifyEmailAsync(dto);
             return result.Success ? Ok(result) : BadRequest(result);
         }
+        // POST /api/v1/auth/onboard-store
+        // الـ user مسجّل دخول (Authorize عادي) بس TenantId = null
+        [HttpPost("onboard-store")]
+        [Authorize]
+        public async Task<IActionResult> OnboardStore([FromBody] OnboardStoreDto dto)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var result = await _authService.OnboardStoreAsync(userId.Value, dto);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
 
         // ── Helpers ───────────────────────────────────────────────────────
 

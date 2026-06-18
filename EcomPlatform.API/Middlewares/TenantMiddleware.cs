@@ -55,7 +55,8 @@ namespace EcomPlatform.API.Middlewares
                 || path.StartsWithSegments("/api/v1/inventory", StringComparison.OrdinalIgnoreCase)
                 || path.StartsWithSegments("/api/v1/accounting", StringComparison.OrdinalIgnoreCase)
                 || path.StartsWithSegments("/api/v1/auth", StringComparison.OrdinalIgnoreCase)
-                || path.StartsWithSegments("/api/v1/dashboard", StringComparison.OrdinalIgnoreCase);
+                || path.StartsWithSegments("/api/v1/dashboard", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWithSegments("/api/v1/store", StringComparison.OrdinalIgnoreCase); // ✅ جديد
         }
 
         private static async Task WriteStoreNotInitializedAsync(

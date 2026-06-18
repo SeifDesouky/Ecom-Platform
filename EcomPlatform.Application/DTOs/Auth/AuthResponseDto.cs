@@ -17,5 +17,8 @@
         public string Role { get; set; } = string.Empty;
         public Guid? TenantId { get; set; }
         public string? AvatarUrl { get; set; }
+        // في AuthResponseDto.cs — UserDto class
+        public bool RequiresOnboarding => TenantId == null && Role == "TenantAdmin";
+
     }
 }
