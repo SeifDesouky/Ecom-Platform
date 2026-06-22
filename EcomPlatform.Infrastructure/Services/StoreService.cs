@@ -27,6 +27,7 @@ namespace EcomPlatform.Infrastructure.Services
         private readonly JwtSettings _jwtSettings;
         private readonly IAuditLogService _auditLogService;
         private readonly IEmailService _emailService;
+        private readonly ISettingService _settingService; // ✅ [NEW]
 
         // ✅ [2] Reserved slugs — تمنع حجز أسماء النظام
         private static readonly HashSet<string> ReservedSlugs =
@@ -42,13 +43,15 @@ namespace EcomPlatform.Infrastructure.Services
             AppDbContext dbContext,
             JwtSettings jwtSettings,
             IAuditLogService auditLogService,
-            IEmailService emailService)
+            IEmailService emailService,
+            ISettingService settingService) // ✅ [NEW]
         {
             _unitOfWork = unitOfWork;
             _dbContext = dbContext;
             _jwtSettings = jwtSettings;
             _auditLogService = auditLogService;
             _emailService = emailService;
+            _settingService = settingService; // ✅ [NEW]
         }
 
         // ── Register Store ────────────────────────────────────────────────────
@@ -87,6 +90,10 @@ namespace EcomPlatform.Infrastructure.Services
 
                 await _unitOfWork.Tenants.AddAsync(tenant);
                 await _unitOfWork.SaveChangesAsync();
+
+                // ── 4b. تهيئة الإعدادات الافتراضية تلقائيًا من بيانات المتجر ────
+                // ✅ [NEW] بدل ما المستخدم يضغط "تهيئة الإعدادات" يدويًا ويلاقيها فاضية
+                await _settingService.InitializeDefaultSettingsAsync(tenant.Id);
 
                 // ── 5. إنشاء الـ TenantAdmin User ────────────────────────────
                 var user = new User
@@ -205,6 +212,62 @@ namespace EcomPlatform.Infrastructure.Services
                 IsAvailable = !taken,
                 Message = taken ? "This URL is already taken" : "This URL is available"
             };
+        }
+
+        // ── Get Public Store ──────────────────────────────────────────────────
+
+        public async Task<ApiResponse<PublicStoreDto>> GetPublicStoreAsync(string slug)
+        {
+            slug = slug.ToLowerInvariant().Trim();
+
+            // 1. جيب الـ Tenant بالـ slug
+            var tenants = await _unitOfWork.Tenants.FindAsync(t =>
+                t.Slug == slug && t.IsActive);
+            var tenant = tenants.FirstOrDefault();
+            if (tenant == null)
+                return ApiResponse<PublicStoreDto>.Fail("Store not found");
+
+            // 2. جيب إعدادات المتجر (currency)
+            var settings = await _unitOfWork.Settings.FindAsync(s =>
+                s.TenantId == tenant.Id && !s.IsDeleted);
+            var settingsMap = settings.ToDictionary(s => s.Key, s => s.Value);
+
+            // 3. جيب المنتجات النشطة
+            var products = await _unitOfWork.Products.FindAsync(p =>
+                p.TenantId == tenant.Id &&
+                p.IsActive &&
+                p.Status == ProductStatus.Active);
+
+            var productDtos = products.Select(p => new PublicProductDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Slug = p.Slug,
+                Description = p.Description,
+                ShortDescription = p.ShortDescription,
+                Price = p.Price,
+                ComparePrice = p.ComparePrice,
+                IsFeatured = p.IsFeatured,
+                Stock = p.Stock,
+                CategoryName = p.Category?.Name ?? string.Empty,
+                Images = p.Images.Select(i => i.Url).ToList(),
+            }).ToList();
+
+            var dto = new PublicStoreDto
+            {
+                Name = tenant.Name,
+                Slug = tenant.Slug,
+                Logo = tenant.Logo,
+                Description = tenant.Description ?? string.Empty,
+                ThemeColor = tenant.ThemeColor ?? "#3B82F6",
+                Currency = settingsMap.GetValueOrDefault("store_currency", "SAR"),
+                Phone = tenant.Phone,
+                Email = tenant.Email,
+                FeaturedProducts = productDtos.Where(p => p.IsFeatured).ToList(),
+                AllProducts = productDtos,
+            };
+
+            return ApiResponse<PublicStoreDto>.Ok(dto);
         }
 
         // ── Private Helpers ───────────────────────────────────────────────────

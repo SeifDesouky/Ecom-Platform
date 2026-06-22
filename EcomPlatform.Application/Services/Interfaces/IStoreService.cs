@@ -18,5 +18,10 @@ namespace EcomPlatform.Application.Services.Interfaces
         /// فحص إذا كان الـ slug متاح أم لا
         /// </summary>
         Task<SlugAvailabilityResponseDto> CheckSlugAvailabilityAsync(string slug);
+
+        /// <summary>
+        /// جلب بيانات المتجر العامة بالـ slug — anonymous
+        /// </summary>
+        Task<ApiResponse<PublicStoreDto>> GetPublicStoreAsync(string slug);
     }
 }

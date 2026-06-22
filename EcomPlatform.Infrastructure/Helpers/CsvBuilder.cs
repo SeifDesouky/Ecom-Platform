@@ -1,14 +1,14 @@
-﻿using System.Globalization;
+﻿using ClosedXML.Excel;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using System.Drawing;
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 
 namespace EcomPlatform.Infrastructure.Helpers
 {
-    /// <summary>
-    /// يحوّل أي List&lt;T&gt; لـ CSV أو Tab-separated Excel
-    /// بدون أي dependency خارجية.
-    /// يستخدم الـ Property names كـ headers تلقائياً.
-    /// </summary>
     public static class CsvBuilder
     {
         // ── CSV ───────────────────────────────────────────────────────────────
@@ -21,30 +21,24 @@ namespace EcomPlatform.Infrastructure.Helpers
             var sb = new StringBuilder();
             var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
-            // Header
             var headerLine = headers ?? props.Select(p => p.Name).ToArray();
             sb.AppendLine(string.Join(",", headerLine.Select(EscapeCsv)));
 
-            // Rows
             foreach (var row in rows)
             {
-                string[] values;
-                if (rowMapper != null)
-                    values = rowMapper(row);
-                else
-                    values = props.Select(p =>
-                        FormatValue(p.GetValue(row))).ToArray();
+                string[] values = rowMapper != null
+                    ? rowMapper(row)
+                    : props.Select(p => FormatValue(p.GetValue(row))).ToArray();
 
                 sb.AppendLine(string.Join(",", values.Select(EscapeCsv)));
             }
 
-            // BOM + UTF-8 — عشان Excel يفتحه بالعربي صح
             return Encoding.UTF8.GetPreamble()
                 .Concat(Encoding.UTF8.GetBytes(sb.ToString()))
                 .ToArray();
         }
 
-        // ── Excel (Tab-separated) ─────────────────────────────────────────────
+        // ── Excel (ClosedXML — .xlsx حقيقي) ──────────────────────────────────
 
         public static byte[] ToExcel<T>(
             IEnumerable<T> rows,
@@ -52,103 +46,172 @@ namespace EcomPlatform.Infrastructure.Helpers
             Func<T, string[]>? rowMapper = null,
             string? sheetTitle = null)
         {
-            var sb = new StringBuilder();
             var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var headerLine = headers ?? props.Select(p => p.Name).ToArray();
+            var list = rows.ToList();
+
+            using var workbook = new XLWorkbook();
+            var ws = workbook.Worksheets.Add("Report");
+
+            int startRow = 1;
 
             if (!string.IsNullOrEmpty(sheetTitle))
             {
-                sb.AppendLine(sheetTitle);
-                sb.AppendLine();
+                ws.Cell(startRow, 1).Value = sheetTitle;
+                ws.Cell(startRow, 1).Style.Font.Bold = true;
+                ws.Cell(startRow, 1).Style.Font.FontSize = 14;
+                ws.Cell(startRow, 1).Style.Font.FontColor = XLColor.FromHtml("#111827");
+                ws.Range(startRow, 1, startRow, headerLine.Length).Merge();
+                startRow += 2;
             }
 
-            // Header
-            var headerLine = headers ?? props.Select(p => p.Name).ToArray();
-            sb.AppendLine(string.Join("\t", headerLine));
-
-            // Rows
-            foreach (var row in rows)
+            for (int col = 0; col < headerLine.Length; col++)
             {
-                string[] values;
-                if (rowMapper != null)
-                    values = rowMapper(row);
-                else
-                    values = props.Select(p =>
-                        FormatValue(p.GetValue(row))).ToArray();
-
-                sb.AppendLine(string.Join("\t", values.Select(EscapeTab)));
+                var cell = ws.Cell(startRow, col + 1);
+                cell.Value = headerLine[col];
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontColor = XLColor.White;
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#4f46e5");
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                cell.Style.Border.OutsideBorderColor = XLColor.FromHtml("#e5e7eb");
             }
 
-            return Encoding.UTF8.GetPreamble()
-                .Concat(Encoding.UTF8.GetBytes(sb.ToString()))
-                .ToArray();
+            startRow++;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                string[] values = rowMapper != null
+                    ? rowMapper(list[i])
+                    : props.Select(p => FormatValue(p.GetValue(list[i]))).ToArray();
+
+                var rowBg = i % 2 == 0 ? XLColor.White : XLColor.FromHtml("#f9fafb");
+
+                for (int col = 0; col < values.Length; col++)
+                {
+                    var cell = ws.Cell(startRow + i, col + 1);
+                    cell.Value = values[col];
+                    cell.Style.Fill.BackgroundColor = rowBg;
+                    cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    cell.Style.Border.OutsideBorderColor = XLColor.FromHtml("#e5e7eb");
+                }
+            }
+
+            ws.Columns().AdjustToContents();
+            ws.SheetView.FreezeRows(startRow - 1);
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+            return ms.ToArray();
         }
 
-        // ── PDF (HTML → بيُفتَح في المتصفح ويُطبَع) ─────────────────────────
+        // ── PDF (QuestPDF — PDF حقيقي) ────────────────────────────────────────
 
-        public static byte[] ToPdfHtml<T>(
+        public static byte[] ToPdf<T>(
             IEnumerable<T> rows,
             string[]? headers = null,
             Func<T, string[]>? rowMapper = null,
             string title = "Report",
             string subtitle = "")
         {
+            QuestPDF.Settings.License = LicenseType.Community;
+
             var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
             var headerLine = headers ?? props.Select(p => p.Name).ToArray();
             var list = rows.ToList();
 
-            var rowsHtml = new StringBuilder();
-            foreach (var row in list)
+            var document = QuestPDF.Fluent.Document.Create(container =>
             {
-                string[] values;
-                if (rowMapper != null)
-                    values = rowMapper(row);
-                else
-                    values = props.Select(p => FormatValue(p.GetValue(p))).ToArray();
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(20);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
 
-                rowsHtml.Append("<tr>");
-                foreach (var v in values)
-                    rowsHtml.Append($"<td>{System.Net.WebUtility.HtmlEncode(v)}</td>");
-                rowsHtml.Append("</tr>");
-            }
+                    page.Header().Column(col =>
+                    {
+                        col.Item()
+                            .Text(title)
+                            .FontSize(16)
+                            .Bold()
+                            .FontColor(QuestPDF.Infrastructure.Color.FromHex("111827"));
 
-            var headersHtml = string.Concat(headerLine.Select(h =>
-                $"<th>{System.Net.WebUtility.HtmlEncode(h)}</th>"));
+                        col.Item()
+                            .Text($"{subtitle} — {list.Count} rows — Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC")
+                            .FontSize(9)
+                            .FontColor(QuestPDF.Infrastructure.Color.FromHex("6b7280"));
 
-            const string css =
-                "* { box-sizing: border-box; margin: 0; padding: 0; }" +
-                "body { font-family: Arial, sans-serif; font-size: 11px; padding: 20px; color: #1f2937; }" +
-                "h1   { font-size: 18px; margin-bottom: 4px; color: #111827; }" +
-                "p.sub { font-size: 11px; color: #6b7280; margin-bottom: 16px; }" +
-                "table { width: 100%; border-collapse: collapse; }" +
-                "th   { background: #4f46e5; color: white; padding: 8px 10px; text-align: left; font-size: 11px; white-space: nowrap; }" +
-                "td   { padding: 6px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }" +
-                "tr:nth-child(even) td { background: #f9fafb; }" +
-                ".footer { margin-top: 20px; font-size: 10px; color: #9ca3af; }" +
-                "@media print { body { padding: 0; } .no-print { display: none; } }";
+                        col.Item()
+                            .PaddingTop(6)
+                            .PaddingBottom(6)
+                            .LineHorizontal(1)
+                            .LineColor(QuestPDF.Infrastructure.Color.FromHex("e5e7eb"));
+                    });
 
-            var titleEncoded = System.Net.WebUtility.HtmlEncode(title);
-            var subtitleEncoded = System.Net.WebUtility.HtmlEncode(subtitle);
-            var generatedAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm");
+                    page.Content().PaddingTop(8).Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            for (int i = 0; i < headerLine.Length; i++)
+                                columns.RelativeColumn();
+                        });
 
-            var html = "<!DOCTYPE html><html dir=\"ltr\"><head>" +
-                       "<meta charset=\"UTF-8\">" +
-                       "<title>" + titleEncoded + "</title>" +
-                       "<style>" + css + "</style>" +
-                       "</head><body>" +
-                       "<h1>" + titleEncoded + "</h1>" +
-                       "<p class=\"sub\">" + subtitleEncoded + " \u2014 " + list.Count + " rows \u2014 Generated: " + generatedAt + " UTC</p>" +
-                       "<table>" +
-                       "<thead><tr>" + headersHtml + "</tr></thead>" +
-                       "<tbody>" + rowsHtml + "</tbody>" +
-                       "</table>" +
-                       "<p class=\"footer\">Generated by EcomPlatform</p>" +
-                       "<p class=\"no-print\" style=\"margin-top:16px\">" +
-                       "<button onclick=\"window.print()\" style=\"padding:8px 20px;background:#4f46e5;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px\">" +
-                       "\U0001F5A8\uFE0F Print / Save as PDF" +
-                       "</button></p>" +
-                       "</body></html>";
+                        table.Header(header =>
+                        {
+                            foreach (var h in headerLine)
+                            {
+                                header.Cell()
+                                    .Background(QuestPDF.Infrastructure.Color.FromHex("4f46e5"))
+                                    .Padding(5)
+                                    .Text(h)
+                                    .FontColor(Colors.White)
+                                    .Bold()
+                                    .FontSize(8);
+                            }
+                        });
 
-            return Encoding.UTF8.GetBytes(html);
+                        for (int i = 0; i < list.Count; i++)
+                        {
+                            string[] values = rowMapper != null
+                                ? rowMapper(list[i])
+                                : props.Select(p => FormatValue(p.GetValue(list[i]))).ToArray();
+
+                            var bg = i % 2 == 0
+                                ? QuestPDF.Infrastructure.Color.FromHex("ffffff")
+                                : QuestPDF.Infrastructure.Color.FromHex("f9fafb");
+
+                            foreach (var v in values)
+                            {
+                                table.Cell()
+                                    .Background(bg)
+                                    .BorderBottom(0.5f)
+                                    .BorderColor(QuestPDF.Infrastructure.Color.FromHex("e5e7eb"))
+                                    .Padding(4)
+                                    .Text(v ?? "")
+                                    .FontSize(8);
+                            }
+                        }
+                    });
+
+                    page.Footer().AlignCenter().Text(x =>
+                    {
+                        x.Span("Generated by EcomPlatform  |  Page ")
+                            .FontSize(8)
+                            .FontColor(QuestPDF.Infrastructure.Color.FromHex("9ca3af"));
+                        x.CurrentPageNumber()
+                            .FontSize(8)
+                            .FontColor(QuestPDF.Infrastructure.Color.FromHex("9ca3af"));
+                        x.Span(" of ")
+                            .FontSize(8)
+                            .FontColor(QuestPDF.Infrastructure.Color.FromHex("9ca3af"));
+                        x.TotalPages()
+                            .FontSize(8)
+                            .FontColor(QuestPDF.Infrastructure.Color.FromHex("9ca3af"));
+                    });
+                });
+            });
+
+            return document.GeneratePdf();
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
@@ -170,8 +233,5 @@ namespace EcomPlatform.Infrastructure.Helpers
                 return $"\"{value.Replace("\"", "\"\"")}\"";
             return value;
         }
-
-        private static string EscapeTab(string value)
-            => value?.Replace("\t", " ").Replace("\r\n", " ").Replace("\n", " ") ?? string.Empty;
     }
 }

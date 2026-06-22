@@ -5,7 +5,6 @@ using EcomPlatform.Core.Interfaces;
 using EcomPlatform.Infrastructure.Helpers;
 using System.Globalization;
 
-
 namespace EcomPlatform.Infrastructure.Services
 {
     public class ExportReportService : IExportReportService
@@ -30,7 +29,6 @@ namespace EcomPlatform.Infrastructure.Services
                 o.CreatedAt >= dateFrom &&
                 o.CreatedAt <= dateTo);
 
-            // فلترة بالحالة
             if (!string.IsNullOrWhiteSpace(filter.Status) &&
                 Enum.TryParse<OrderStatus>(filter.Status, true, out var orderStatus))
                 orders = orders.Where(o => o.Status == orderStatus);
@@ -115,7 +113,6 @@ namespace EcomPlatform.Infrastructure.Services
                 Guid.TryParse(filter.CategoryId, out var catId))
                 products = products.Where(p => p.CategoryId == catId);
 
-            // جيب أسماء الكاتيجوريز دفعة واحدة
             var catIds = products.Select(p => p.CategoryId).Distinct().ToHashSet();
             var cats = (await _unitOfWork.Categories.FindAsync(c => catIds.Contains(c.Id)))
                             .ToDictionary(c => c.Id, c => c.Name);
@@ -157,7 +154,7 @@ namespace EcomPlatform.Infrastructure.Services
                 r.CostPrice?.ToString("F2", CultureInfo.InvariantCulture) ?? "",
                 r.Stock.ToString(), r.LowStockAlert.ToString(),
                 r.Status,
-                r.IsActive ? "Yes" : "No",
+                r.IsActive   ? "Yes" : "No",
                 r.IsFeatured ? "Yes" : "No",
                 r.Weight.ToString("F3", CultureInfo.InvariantCulture),
                 r.CreatedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
@@ -239,7 +236,7 @@ namespace EcomPlatform.Infrastructure.Services
 
             var catIds = products.Select(p => p.CategoryId).Distinct().ToHashSet();
             var cats = (await _unitOfWork.Categories.FindAsync(c => catIds.Contains(c.Id)))
-                         .ToDictionary(c => c.Id, c => c.Name);
+                            .ToDictionary(c => c.Id, c => c.Name);
 
             var rows = products
                 .OrderBy(p => p.Name)
@@ -273,8 +270,8 @@ namespace EcomPlatform.Infrastructure.Services
                 r.ProductName, r.SKU, r.Barcode, r.Category,
                 r.CurrentStock.ToString(),
                 r.LowStockAlert.ToString(),
-                r.IsLowStock  ? "⚠️ Yes" : "No",
-                r.IsOutOfStock ? "❌ Yes" : "No",
+                r.IsLowStock   ? "Yes" : "No",
+                r.IsOutOfStock ? "Yes" : "No",
                 r.Price.ToString("F2", CultureInfo.InvariantCulture),
                 r.CostPrice?.ToString("F2", CultureInfo.InvariantCulture) ?? "",
                 r.StockValue.ToString("F2", CultureInfo.InvariantCulture),
@@ -320,17 +317,17 @@ namespace EcomPlatform.Infrastructure.Services
                 case "xlsx":
                 case "xls":
                     bytes = CsvBuilder.ToExcel(rows, headers, mapper, $"{title} — {subtitle}");
-                    contentType = "application/vnd.ms-excel";
-                    ext = "xls";
+                    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                    ext = "xlsx";
                     break;
 
                 case "pdf":
-                    bytes = CsvBuilder.ToPdfHtml(rows, headers, mapper, title, subtitle);
-                    contentType = "text/html; charset=utf-8";
-                    ext = "html";    // المتصفح يفتحه ويطبعه كـ PDF
+                    bytes = CsvBuilder.ToPdf(rows, headers, mapper, title, subtitle);
+                    contentType = "application/pdf";
+                    ext = "pdf";
                     break;
 
-                default:   // csv
+                default: // csv
                     bytes = CsvBuilder.ToCsv(rows, headers, mapper);
                     contentType = "text/csv; charset=utf-8";
                     ext = "csv";

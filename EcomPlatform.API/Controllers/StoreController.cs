@@ -25,7 +25,7 @@ namespace EcomPlatform.API.Controllers
 
         // POST /api/v1/store/register
         [HttpPost("register")]
-        [EnableRateLimiting("login")] // ✅ [1] نفس policy الـ auth — يحمي من abuse
+        [EnableRateLimiting("login")]
         public async Task<IActionResult> RegisterStore([FromBody] RegisterStoreDto dto)
         {
             var result = await _storeService.RegisterStoreAsync(dto);
@@ -41,6 +41,17 @@ namespace EcomPlatform.API.Controllers
 
             var result = await _storeService.CheckSlugAvailabilityAsync(slug);
             return Ok(result);
+        }
+
+        // GET /api/v1/store/{slug}
+        [HttpGet("{slug}")]
+        public async Task<IActionResult> GetPublicStore(string slug)
+        {
+            if (string.IsNullOrWhiteSpace(slug))
+                return BadRequest(new { message = "Slug is required" });
+
+            var result = await _storeService.GetPublicStoreAsync(slug);
+            return result.Success ? Ok(result) : NotFound(result);
         }
     }
 }
